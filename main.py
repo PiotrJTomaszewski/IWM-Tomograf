@@ -42,13 +42,16 @@ class Tomograph:
     circumcircle_offset = 0
     # This copy will be used to display current emitter/detectors position etc.
     vis_image = None
+    radon_result = None
 
     # TODO: For now it only works for square images
-    def __init__(self, image, delta_alpha, n, l):
+    def __init__(self, image, delta_alpha, number_of_iterations, n, l):
+        # Alpha is in degrees
         self.current_alpha = 0
         self.delta_alpha = delta_alpha
         self.n = n
         self.l = l
+        self.number_of_iterations = number_of_iterations
 
         # Diameter of the circle circumscribed on the image. Emitters and detectors will move alongside its perimeter.
         self.circumcircle_diameter = int(math.sqrt(2 * (image.shape[0] ** 2))) + self.circumcircle_offset
@@ -57,50 +60,33 @@ class Tomograph:
         self.image_width = self.image.shape[0]
         self.image_center = (self.image.shape[0] // 2, self.image.shape[1] // 2)
 
-        self.radon_image = np.zeros((n, 211), dtype="uint8")
-        self.radon_result = np.zeros((n, 211), dtype=np.int)
-        self._scan()
+    def radon_transform(self):
+        """Inspired by https://www.clear.rice.edu/elec431/projects96/DSP/bpanalysis.html
+        Theta is called alpha in this code"""
+        self.radon_result = np.zeros((self.n, self.number_of_iterations), dtype=np.int)
+        for iteration in range(self.number_of_iterations):
+            self._calculate_emitters_detectors_position()
+            self._calculate_scan_lines()
+            for line_id, line in enumerate(self.scan_lines):
+                line_integral = sum([self.image[point[0]][point[1]] for point in line])
+                self.radon_result[line_id, iteration] += line_integral
+            self.current_alpha += self.delta_alpha
 
-    def next_iteration(self):
-        """
-        Move to the next scan iteration
-        """
-        # TODO: Implement this
-        self.current_alpha += self.delta_alpha
-        self._scan()
-        self.radon_transform()
-
-    def _scan(self):
-        # TODO: Implement or maybe move to different function
-        self._calculate_emitter_position()
-        self._calculate_detectors_position()
-        self._calculate_scan_lines()
-
-    def _calculate_emitter_position(self):
-        # r = self.circumcircle_diameter // 2
-        # a = int(self.image_center[0] - r * math.cos(math.radians(self.current_alpha)))
-        # b = int(self.image_center[1] + r * math.sin(math.radians(self.current_alpha)))
-        # self.emitter = a, b
-
+    def _calculate_emitters_detectors_position(self):
         self.emitters = []
-        r = self.circumcircle_diameter // 2
-        for i in range(self.n):
-            # TODO: Works only for odd number of detectors
-            angle = self.current_alpha - (i - self.n / 2) * self.l + 180
-            a = int(self.image_center[0] + r * math.cos(math.radians(angle)))
-            b = int(self.image_center[1] - r * math.sin(math.radians(angle)))
-            self.emitters.append((a, b))
-        self.emitters.reverse()
-
-    def _calculate_detectors_position(self):
         self.detectors = []
         r = self.circumcircle_diameter // 2
         for i in range(self.n):
-            # TODO: Works only for odd number of detectors
-            angle = self.current_alpha - (i - self.n / 2) * self.l
-            a = int(self.image_center[0] + r * math.cos(math.radians(angle)))
-            b = int(self.image_center[1] - r * math.sin(math.radians(angle)))
-            self.detectors.append((a, b))
+            # TODO: Angle calculation works ok only for odd number of detectors/emitters
+            angle_rad = math.radians(self.current_alpha + (i - self.n // 2) * self.l)
+            emitter_a = int(self.image_center[0] + r * math.cos(angle_rad))
+            emitter_b = int(self.image_center[1] - r * math.sin(angle_rad))
+            self.emitters.append((emitter_a, emitter_b))
+        for i in range(self.n - 1, -1, -1):
+            angle_rad = math.radians(self.current_alpha + (i - self.n // 2) * self.l)
+            detector_a = int(self.image_center[0] - r * math.cos(angle_rad))
+            detector_b = int(self.image_center[1] + r * math.sin(angle_rad))
+            self.detectors.append((detector_a, detector_b))
 
     def _calculate_scan_lines(self):
         self.scan_lines = []
@@ -108,18 +94,11 @@ class Tomograph:
             self.scan_lines.append(
                 generate_line(self.emitters[i][0], self.emitters[i][1], self.detectors[i][0], self.detectors[i][1]))
 
-    def radon_transform(self):
-        """Inspired by https://www.clear.rice.edu/elec431/projects96/DSP/bpanalysis.html
-        Theta is called alpha in this code"""
-        iteration_result = []
-        for i, line in enumerate(self.scan_lines):
-            s = distance_point_line(self.image_center, line[0], line[-1])
-            line_integral = sum([self.image[point[0]][point[1]] for point in line])
-            self.radon_result[int(i), self.current_alpha] += line_integral
-
-    def visualize(self):
+    def visualize_scanner(self):
         # Make a clean copy of the image
         self.vis_image = self.image.copy()
+        self._calculate_emitters_detectors_position()
+        self._calculate_scan_lines()
         self._visualize_circumcircle()
         for emitter in self.emitters:
             self._visualize_emitter_detector(emitter)
@@ -142,26 +121,14 @@ class Tomograph:
             for a, b in line:
                 self.vis_image[a][b] = 1
 
-    def _visualize_radon(self):
+    def visualize_radon(self):
+        radon_image = self.radon_result.copy()
         max_val = np.max(self.radon_result)
         min_val = np.min(self.radon_result)
         for i in range(len(self.radon_result)):
             for j in range(len(self.radon_result[i])):
-                self.radon_image[i][j] = normalize(self.radon_result[i][j], min_val, max_val)
-        display_image(self.radon_image)
-
-
-def distance_point_line(point, line_point1, line_point2):
-    """
-    Calculates distance between a point and a line defined by two points
-    """
-    x0 = point[1]
-    y0 = point[0]
-    x1 = line_point1[1]
-    y1 = line_point1[0]
-    x2 = line_point2[1]
-    y2 = line_point2[0]
-    return abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2)
+                radon_image[i][j] = normalize(self.radon_result[i][j], min_val, max_val)
+        display_image(radon_image)
 
 
 def normalize(value, min_val, max_val):
@@ -172,14 +139,11 @@ def main():
     images = open_all_images()
     image = images['Shepp_logan']
 
-    tomograph = Tomograph(image, delta_alpha=1, n=200, l=1)
-    tomograph.visualize()
+    tomograph = Tomograph(image, delta_alpha=1, number_of_iterations=180, n=81, l=1)
+    tomograph.visualize_scanner()
+    tomograph.radon_transform()
+    tomograph.visualize_radon()
 
-    for i in range(180):
-        tomograph.next_iteration()
-        # tomograph.visualize()
-
-    tomograph._visualize_radon()
     display_image(cheat_radon(image))
 
 

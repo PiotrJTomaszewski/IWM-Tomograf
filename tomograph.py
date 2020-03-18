@@ -19,6 +19,7 @@ class Tomograph:
 
     # TODO: For now it only works for square images
     def __init__(self, image, delta_alpha, n, l):
+        # TODO: TIL, l is something different. Fix it
         # Alpha is in degrees
         self.current_alpha = 0
         self.delta_alpha = delta_alpha
@@ -64,15 +65,19 @@ class Tomograph:
         self.emitters = []
         self.detectors = []
         r = self.circumcircle_diameter // 2
+        angles = np.linspace(start=self.current_alpha - self.l//2, stop=self.current_alpha+ self.l//2, num=self.n)
+        angles_rad = [math.radians(x) for x in angles]
         for i in range(self.n):
             # TODO: Angle calculation works ok only for odd number of detectors/emitters
             # TODO: Should emitters be on top or bottom?
-            angle_rad = math.radians(self.current_alpha + (i - self.n // 2) * self.l)
+            # angle_rad = math.radians(self.current_alpha + (i - self.n // 2) * self.l)
+            angle_rad = angles_rad[i]
             emitter_a = int(self.image_center[0] + r * math.cos(angle_rad))
             emitter_b = int(self.image_center[1] - r * math.sin(angle_rad))
             self.emitters.append((emitter_a, emitter_b))
         for i in range(self.n - 1, -1, -1):
-            angle_rad = math.radians(self.current_alpha + (i - self.n // 2) * self.l)
+            # angle_rad = math.radians(self.current_alpha + (i - self.n // 2) * self.l)
+            angle_rad = angles_rad[i]
             detector_a = int(self.image_center[0] - r * math.cos(angle_rad))
             detector_b = int(self.image_center[1] + r * math.sin(angle_rad))
             self.detectors.append((detector_a, detector_b))

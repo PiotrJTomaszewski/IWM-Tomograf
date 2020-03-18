@@ -61,6 +61,7 @@ class Main:
             self.gui.display_image(self.tomograph.visualize_scanner(), 'simulation_step')
             self.gui.display_image(self.tomograph.visualize_sinogram(), 'singogram')
 
+
 def main():
     m = Main()
 

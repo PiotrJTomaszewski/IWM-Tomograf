@@ -102,10 +102,6 @@ class Tomograph:
 
     def iradon_init(self):
         self.current_iradon_iteration = 0
-        # self.radon_result = np.vstack(self.radon_result)
-        for i in range(len(self.radon_result)):
-            self.radon_result[i] = filter(self.radon_result[i])
-        # self.radon_result = np.vstack(self.radon_result)
 
         # self.iradon_result = np.zeros((self.image_width, self.image_width), dtype=np.int)
         self.iradon_result = np.zeros((self.input_image_width, self.input_image_width), dtype=np.int)  # TODO: size
@@ -180,7 +176,7 @@ def _visualize_scan_lines(image, scan_lines):
 def filter(line):
     line_len = len(line)
     window = np.linspace(start=1, stop=0, num=line_len // 2)
-    for i in range(line_len//2):
+    for i in range(line_len // 2):
         line[i] *= window[i]
         line[line_len - i - 1] *= window[i]
     return line
@@ -195,4 +191,12 @@ def normalize(value, min_val, max_val, normalize_to=255):
 
 
 def make_image_square(image):
-    return image
+    a, b = image.shape
+    if a == b:
+        return image
+    else:
+        if a > b:
+            padding = ((0, 0), (0, a - b))
+        else:
+            padding = ((0,b-a), (0,0))
+        return np.pad(image, padding, mode='constant', constant_values=0)

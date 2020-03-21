@@ -3,6 +3,7 @@ import numpy as np
 import math
 from bresenham import generate_line
 
+
 class Tomograph:
     emitters = []
     detectors = []
@@ -12,17 +13,21 @@ class Tomograph:
     circumcircle_offset = 0
     # This copy will be used to display current emitter/detectors position etc.
     vis_image = None
+    max_alpha = 180
+
+    current_iradon_iteration = 0
+    iradon_result = None
+    iradon_tmp_eses = None
 
     # TODO: For now it only works for square images
     def __init__(self, image, delta_alpha, n, l):
-        # TODO: TIL, l is something different. Fix it
         # Alpha is in degrees
         self.current_alpha = 0
         self.delta_alpha = delta_alpha
         self.n = n
         self.l = l
         # TODO: Find which angle works best
-        self.radon_iterations = int(180 // delta_alpha)
+        self.radon_iterations = int(self.max_alpha // delta_alpha)
 
         # Diameter of the circle circumscribed on the image. Emitters and detectors will move alongside its perimeter.
         self.circumcircle_diameter = int(math.sqrt(2 * (image.shape[0] ** 2))) + self.circumcircle_offset
@@ -101,6 +106,58 @@ class Tomograph:
             self.scan_lines.append(
                 generate_line(self.emitters[i][0], self.emitters[i][1], self.detectors[i][0], self.detectors[i][1]))
 
+    def iradon_init(self):
+        self.current_iradon_iteration = 0
+        self.iradon_result = np.zeros((self.n, self.n), dtype=np.int)
+        self.iradon_tmp_eses = np.zeros(self.n * self.n, dtype=np.double)
+        self.radon_result = np.transpose(self.radon_result)
+
+    def iradon_step(self):
+        cdef int n = self.n
+        cdef int y
+        cdef int x
+        cdef double angle_rad
+        cdef int i
+        cdef double min_s
+        cdef double max_s
+        cdef double s
+        cdef int j
+        cdef int angle
+        cdef double cos_angle
+        cdef double sin_angle
+        angle = self.current_iradon_iteration
+
+        angle_rad = math.radians(angle)
+        cos_angle = math.cos(angle_rad)
+        sin_angle = math.sin(angle_rad)
+        i = 0
+        min_s = 1e9
+        max_s = 0
+        for y in range(n):
+            for x in range(n):
+                s = y * cos_angle - x * sin_angle
+                if s < min_s:
+                    min_s = s
+                elif s > max_s:
+                    max_s = s
+                self.iradon_tmp_eses[i] = s
+                i += 1
+        j = 0
+        for y in range(n):
+            for x in range(n):
+                self.iradon_result[x, y] += self.radon_result[
+                   angle, int(((self.iradon_tmp_eses[j] - min_s) / (max_s - min_s) * (n - 1)))]
+                j += 1
+        if self.current_iradon_iteration == self.radon_iterations:
+            return True
+        else:
+            self.current_iradon_iteration += 1
+            return False
+
+    def iradon_full(self):
+        while self.iradon_step():
+            pass
+
     def visualize_scanner(self):
         # Make a clean copy of the image
         self.vis_image = self.image.copy()
@@ -133,18 +190,26 @@ class Tomograph:
                 self.vis_image[a][b] = 1
 
     def visualize_sinogram(self):
-        singoram_image = self.radon_result.astype(np.uint8)
+        singoram_image = np.zeros((self.radon_result.shape[0], self.radon_result.shape[1]), dtype=np.uint8)
         max_val = np.max(self.radon_result)
         min_val = np.min(self.radon_result)
         for i in range(len(self.radon_result)):
             for j in range(len(self.radon_result[i])):
-                singoram_image[i][j] = normalize(self.radon_result[i][j], min_val, max_val)
+                singoram_image[i, j] = normalize(self.radon_result[i, j], min_val, max_val)
         return singoram_image
+
+    def visualize_reconstructed_img(self):
+        rec_img = np.zeros((self.iradon_result.shape[0], self.iradon_result.shape[1]), dtype=np.uint8)
+        max_val = np.max(self.iradon_result)
+        min_val = np.min(self.iradon_result)
+        for i in range(len(self.iradon_result)):
+            for j in range(len(self.iradon_result[i])):
+                rec_img[i, j] = normalize(self.iradon_result[i, j], min_val, max_val)
+        return rec_img
 
 
 def normalize(value, min_val, max_val):
     return int((value - min_val) / (max_val - min_val) * 255)
-
 
 def main():
     from timeit import default_timer as timer
@@ -156,12 +221,10 @@ def main():
     tomograph = Tomograph(image, delta_alpha=2.1, n=81, l=75)
     tomograph.radon_transform_full()
     end = timer()
-    print(end-start)
+    print(end - start)
 
     io.imshow(tomograph.visualize_sinogram())
     io.show()
-
-
 
 if __name__ == '__main__':
     main()

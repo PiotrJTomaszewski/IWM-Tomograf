@@ -42,9 +42,9 @@ cpdef filtered_back_projection(sinogram):
         j = 0
         for y in range(n):
             for x in range(n):
-                j += 1
                 # try:
                 result[x, y] += sinogram[angle, int(((eses[j] - min_s) / (max_s - min_s) * (n-1)))]
+                j += 1
                 # except IndexError:
                 #     pass
     return result

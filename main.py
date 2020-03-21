@@ -33,36 +33,54 @@ def open_image(img_name):
 class Main:
     input_image = None
     tomograph = None
+    iradon_initialized = False
+    radon_initialized = False
 
     def __init__(self):
-        # self.tomograph = Tomograph()
+        self.tomograph = Tomograph()
         self.tk_root = tk.Tk()
         self.gui = TomographGUI(self.tk_root, input_image_confirm_clbk=self.input_image_selected,
                                 sim_options_confirm_clbk=self.simulation_options_changed,
-                                radon_next_step_clbk=self.radon_next_step)
+                                radon_next_step_clbk=self.radon_next_step,
+                                iradon_next_step_clbk=self.iradon_next_step)
         self.avail_img_names = get_avail_image_names()
         self.gui.set_available_input_images(self.avail_img_names)
         self.tk_root.mainloop()
 
     def input_image_selected(self):
         img_id = self.gui.get_selected_input_image()[0]
-        self.input_image = open_image(self.avail_img_names[img_id])
-        self.gui.display_image(self.input_image, 'input')
+        input_image = open_image(self.avail_img_names[img_id])
+        self.gui.display_image(input_image, 'input')
+        self.tomograph.set_input_image(input_image)
 
     def simulation_options_changed(self):
         delta_alpha_step, number_of_detectors, detectors_spread = self.gui.get_simulations_options()
-        self.tomograph = Tomograph(self.input_image, delta_alpha=float(delta_alpha_step),
-                                   n=int(number_of_detectors), l=float(detectors_spread))
+        self.tomograph.set_params(delta_alpha=float(delta_alpha_step), n=int(number_of_detectors),
+                                  l=float(detectors_spread))
         # Visualize the scanner
         self.gui.display_image(self.tomograph.visualize_scanner(), 'options')
 
     def radon_next_step(self):
-        if self.gui.show_steps_var.get() == 1:
+        if not self.radon_initialized:
+            self.tomograph.init_radon()
+            self.radon_initialized = True
+        if self.gui.show_steps_radon_var.get() == 1:
             self.tomograph.radon_transform_step()
         else:
             self.tomograph.radon_transform_full()
         self.gui.display_image(self.tomograph.visualize_scanner(), 'simulation_step')
-        self.gui.display_image(self.tomograph.visualize_sinogram(), 'singogram')
+        self.gui.display_image(self.tomograph.visualize_sinogram(), 'sinogram')
+
+    def iradon_next_step(self):
+        if not self.iradon_initialized:
+            self.tomograph.iradon_init()
+            self.iradon_initialized = True
+
+        if self.gui.show_steps_iradon_var.get() == 1:
+            self.tomograph.iradon_step()
+        else:
+            self.tomograph.iradon_full()
+        self.gui.display_image(self.tomograph.visualize_reconstructed_img(), 'reco_img')
 
 
 def main():

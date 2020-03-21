@@ -22,15 +22,19 @@ IMAGE_HEIGHT = 300
 
 
 class TomographGUI:
-    def __init__(self, master, input_image_confirm_clbk, sim_options_confirm_clbk, radon_next_step_clbk):
+    def __init__(self, master, input_image_confirm_clbk, sim_options_confirm_clbk, radon_next_step_clbk,
+                 iradon_next_step_clbk):
         self.master = master
         master.title('Symulator tomografu')
         # Create widgets
         self._setup_input_image_selection(input_image_confirm_clbk)
         self._setup_simulation_options(sim_options_confirm_clbk)
-        self.show_steps_var = tk.IntVar()
+        self.show_steps_radon_var = tk.IntVar()
         self._setup_radon_steps(radon_next_step_clbk)
         self._setup_sinogram()
+        self.show_steps_iradon_var = tk.IntVar()
+        self._setup_iradon_steps(iradon_next_step_clbk)
+        self._setup_reconstructed()
 
     def _setup_input_image_selection(self, input_image_confirm_clbk):
         self.input_image_frame = tk.LabelFrame(master=self.master, text='Obraz wejściowy')
@@ -77,22 +81,39 @@ class TomographGUI:
 
     def _setup_radon_steps(self, radon_next_step_clbk):
         self.radon_frame = tk.LabelFrame(master=self.master, text='Transformata Radona')
-        self.show_steps = tk.Checkbutton(master=self.radon_frame, text='Pokazuj kroki pośrednie',
-                                         variable=self.show_steps_var)
+        self.show_steps_radon = tk.Checkbutton(master=self.radon_frame, text='Pokazuj kroki pośrednie',
+                                               variable=self.show_steps_radon_var)
         self.simulation_step_image = tk.Canvas(master=self.radon_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
         self.next_sim_step = tk.Button(master=self.radon_frame, text='Następny krok', command=radon_next_step_clbk)
 
         self.radon_frame.grid(row=0, column=1)
-        self.show_steps.pack()
+        self.show_steps_radon.pack()
         self.simulation_step_image.pack()
         self.next_sim_step.pack()
 
     def _setup_sinogram(self):
-        self.singogram_frame = tk.LabelFrame(master=self.master, text='Singoram')
-        self.sinogram_image = tk.Canvas(master=self.singogram_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
+        self.sinogram_frame = tk.LabelFrame(master=self.master, text='Singoram')
+        self.sinogram_image = tk.Canvas(master=self.sinogram_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
 
-        self.singogram_frame.grid(row=1, column=1)
+        self.sinogram_frame.grid(row=1, column=1)
         self.sinogram_image.pack()
+
+    def _setup_iradon_steps(self, iradon_next_step_clbk):
+        self.iradon_frame = tk.LabelFrame(master=self.master, text='Odwrotna transformata Radona')
+        self.show_steps_iradon = tk.Checkbutton(master=self.iradon_frame, text='Pokazuj kroki pośrednie',
+                                                variable=self.show_steps_iradon_var)
+        self.next_reco_step = tk.Button(master=self.iradon_frame, text='Następny krok', command=iradon_next_step_clbk)
+
+        self.iradon_frame.grid(row=0, column=2)
+        self.show_steps_iradon.pack()
+        self.next_reco_step.pack()
+
+    def _setup_reconstructed(self):
+        self.reco_frame = tk.LabelFrame(master=self.master, text='Odtworzony obraz')
+        self.reco_image = tk.Canvas(master=self.reco_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
+
+        self.reco_frame.grid(row=1, column=2)
+        self.reco_image.pack()
 
     def display_image(self, image_array, image_type):
         # PIL doesn't support floating point inputs
@@ -104,8 +125,10 @@ class TomographGUI:
             canvas = self.options_image
         elif image_type == 'simulation_step':
             canvas = self.simulation_step_image
-        elif image_type == 'singogram':
+        elif image_type == 'sinogram':
             canvas = self.sinogram_image
+        elif image_type == 'reco_img':
+            canvas = self.reco_image
         else:
             print('This image type doesn\'t exist')
             return

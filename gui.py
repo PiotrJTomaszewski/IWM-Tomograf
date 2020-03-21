@@ -28,6 +28,7 @@ class TomographGUI:
         # Create widgets
         self._setup_input_image_selection(input_image_confirm_clbk)
         self._setup_simulation_options(sim_options_confirm_clbk)
+        self.show_steps_var = tk.IntVar()
         self._setup_radon_steps(radon_next_step_clbk)
         self._setup_sinogram()
 
@@ -76,7 +77,8 @@ class TomographGUI:
 
     def _setup_radon_steps(self, radon_next_step_clbk):
         self.radon_frame = tk.LabelFrame(master=self.master, text='Transformata Radona')
-        self.show_steps = tk.Checkbutton(master=self.radon_frame, text='Pokazuj kroki pośrednie', onvalue=1, offvalue=0)
+        self.show_steps = tk.Checkbutton(master=self.radon_frame, text='Pokazuj kroki pośrednie',
+                                         variable=self.show_steps_var)
         self.simulation_step_image = tk.Canvas(master=self.radon_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
         self.next_sim_step = tk.Button(master=self.radon_frame, text='Następny krok', command=radon_next_step_clbk)
 

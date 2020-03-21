@@ -113,7 +113,7 @@ def filtered_back_projection(sinogram):
     result = np.zeros((n, n), dtype=np.int)
     eses = []
 
-    angles = range(0, m, 1)
+    angles = range(0, m, 10)
     # for angle, line in enumerate(sinogram):
     for angle in angles:
     # for angle in angles:
@@ -132,6 +132,7 @@ def filtered_back_projection(sinogram):
     for i, ss in enumerate(eses):
         min_s = min(ss)
         max_s = max(ss)
+        print(min_s, max_s)
         norm = [int(((s - min_s) / (max_s - min_s)) * n) for s in ss]
         eses_norm.append(norm)
 

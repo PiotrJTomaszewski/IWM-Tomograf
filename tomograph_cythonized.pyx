@@ -1,11 +1,7 @@
 from skimage import io, draw
-import matplotlib.pyplot as plt
 import numpy as np
-import os
 import math
-from radon import *
 from bresenham import generate_line
-
 
 class Tomograph:
     emitters = []
@@ -45,13 +41,20 @@ class Tomograph:
         """Inspired by https://www.clear.rice.edu/elec431/projects96/DSP/bpanalysis.html
         Theta is called alpha in this code"""
         # TODO: Calculate s
-        if self.current_radon_iteration < self.radon_iterations:
+        cdef int radon_iterations = self.radon_iterations
+        cdef int current_radon_iteration = self.current_radon_iteration
+        cdef int n = self.n
+        cpdef double line_integral
+        cdef int delta_alpha = self.delta_alpha
+        cdef int line_id
+        if current_radon_iteration < radon_iterations:
             self._calculate_emitters_detectors_position()
             self._calculate_scan_lines()
-            for line_id, line in enumerate(self.scan_lines):
-                line_integral = sum([self.image[point[0]][point[1]] for point in line])
+            line_id = 0
+            for line_id in range(n):
+                line_integral = np.sum([self.image[point] for point in self.scan_lines[line_id]])
                 self.radon_result[line_id, self.current_radon_iteration] += line_integral
-            self.current_alpha += self.delta_alpha
+            self.current_alpha += delta_alpha
             self.current_radon_iteration += 1
             return True
         else:
@@ -64,27 +67,37 @@ class Tomograph:
     def _calculate_emitters_detectors_position(self):
         self.emitters = []
         self.detectors = []
+        cdef int r
+        cdef int current_alpha = self.current_alpha
+        cdef double l = self.l
+        cdef int n = self.n
+        cdef int image_center_a = self.image_center[0]
+        cdef int image_center_b = self.image_center[1]
         r = self.circumcircle_diameter // 2
-        angles = np.linspace(start=self.current_alpha - self.l // 2, stop=self.current_alpha + self.l // 2, num=self.n)
+        # TODO: Look at this division
+        angles = np.linspace(start=current_alpha - l / 2, stop=current_alpha + l / 2, num=n)
+        cdef double x
         angles_rad = [math.radians(x) for x in angles]
-        for i in range(self.n):
-            # TODO: Angle calculation works ok only for odd number of detectors/emitters
+        cdef int i
+        for i in range(n):
             # TODO: Should emitters be on top or bottom?
             # angle_rad = math.radians(self.current_alpha + (i - self.n // 2) * self.l)
             angle_rad = angles_rad[i]
-            emitter_a = int(self.image_center[0] + r * math.cos(angle_rad))
-            emitter_b = int(self.image_center[1] - r * math.sin(angle_rad))
+            emitter_a = int(image_center_a + r * math.cos(angle_rad))
+            emitter_b = int(image_center_b - r * math.sin(angle_rad))
             self.emitters.append((emitter_a, emitter_b))
-        for i in range(self.n - 1, -1, -1):
+        for i in range(n - 1, -1, -1):
             # angle_rad = math.radians(self.current_alpha + (i - self.n // 2) * self.l)
             angle_rad = angles_rad[i]
-            detector_a = int(self.image_center[0] - r * math.cos(angle_rad))
-            detector_b = int(self.image_center[1] + r * math.sin(angle_rad))
+            detector_a = int(image_center_a - r * math.cos(angle_rad))
+            detector_b = int(image_center_b + r * math.sin(angle_rad))
             self.detectors.append((detector_a, detector_b))
 
     def _calculate_scan_lines(self):
         self.scan_lines = []
-        for i in range(len(self.emitters)):
+        cdef int i
+        cdef int n = self.n
+        for i in range(n):
             self.scan_lines.append(
                 generate_line(self.emitters[i][0], self.emitters[i][1], self.detectors[i][0], self.detectors[i][1]))
 
@@ -147,6 +160,7 @@ def main():
 
     io.imshow(tomograph.visualize_sinogram())
     io.show()
+
 
 
 if __name__ == '__main__':

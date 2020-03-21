@@ -57,9 +57,12 @@ class Main:
         self.gui.display_image(self.tomograph.visualize_scanner(), 'options')
 
     def radon_next_step(self):
-        if self.tomograph.radon_transform_step():
-            self.gui.display_image(self.tomograph.visualize_scanner(), 'simulation_step')
-            self.gui.display_image(self.tomograph.visualize_sinogram(), 'singogram')
+        if self.gui.show_steps_var.get() == 1:
+            self.tomograph.radon_transform_step()
+        else:
+            self.tomograph.radon_transform_full()
+        self.gui.display_image(self.tomograph.visualize_scanner(), 'simulation_step')
+        self.gui.display_image(self.tomograph.visualize_sinogram(), 'singogram')
 
 
 def main():

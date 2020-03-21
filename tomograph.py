@@ -25,13 +25,14 @@ class Tomograph:
     # Inverse Radon
     current_iradon_iteration = 0
     iradon_result = None
+    iradon_scaling_factor = 0
 
     def __init__(self):
         pass
 
     def set_input_image(self, image):
         self.input_image = make_image_square(image)
-        self.circumcircle_diameter = int(self.input_image.shape[0] * math.sqrt(2)) + 30
+        self.circumcircle_diameter = int(self.input_image.shape[0] * math.sqrt(2))
         self.scanner_vis_img_padding = (self.circumcircle_diameter - self.input_image.shape[0]) // 2 + 10
         # We're making the input image larger both to fit the visualizations and to make calculating lines easier
         self.input_image = np.pad(self.input_image, self.scanner_vis_img_padding, mode='constant',
@@ -102,6 +103,10 @@ class Tomograph:
     def iradon_init(self):
         self.current_iradon_iteration = 0
         # self.radon_result = np.vstack(self.radon_result)
+        for i in range(len(self.radon_result)):
+            self.radon_result[i] = filter(self.radon_result[i])
+        # self.radon_result = np.vstack(self.radon_result)
+
         # self.iradon_result = np.zeros((self.image_width, self.image_width), dtype=np.int)
         self.iradon_result = np.zeros((self.input_image_width, self.input_image_width), dtype=np.int)  # TODO: size
 
@@ -152,6 +157,7 @@ class Tomograph:
         for i in range(len(self.iradon_result)):
             for j in range(len(self.iradon_result[i])):
                 rec_img[i, j] = normalize(self.iradon_result[i, j], min_val, max_val)
+        # io.imsave("asd.png", rec_img)
         return rec_img
 
 
@@ -171,9 +177,18 @@ def _visualize_scan_lines(image, scan_lines):
             image[a][b] = 1
 
 
-def normalize(value, min_val, max_val):
+def filter(line):
+    line_len = len(line)
+    window = np.linspace(start=1, stop=0, num=line_len // 2)
+    for i in range(line_len//2):
+        line[i] *= window[i]
+        line[line_len - i - 1] *= window[i]
+    return line
+
+
+def normalize(value, min_val, max_val, normalize_to=255):
     try:
-        return int((value - min_val) / (max_val - min_val) * 255)
+        return int((value - min_val) / (max_val - min_val) * normalize_to)
     except ValueError:
         print("NAN in normalize")
         return 0

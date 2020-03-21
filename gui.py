@@ -6,15 +6,15 @@ import PIL.ImageTk
 # TODO: Set default values
 
 DELTA_ALPHA_STEP_MIN = 0.1
-DELTA_ALPHA_STEP_MAX = 10
+DELTA_ALPHA_STEP_MAX = 30
 DELTA_ALPHA_STEP_INCREMENT = 0.1
 
-NUMBER_OF_DETECTORS_MIN = 1
-NUMBER_OF_DETECTORS_MAX = 100
+NUMBER_OF_DETECTORS_MIN = 10
+NUMBER_OF_DETECTORS_MAX = 1000
 NUMBER_OF_DETECTORS_INCREMENT = 1
 
 SPREAD_MIN = 10
-SPREAD_MAX = 100
+SPREAD_MAX = 180
 SPREAD_INCREMENT = 1
 
 IMAGE_WIDTH = 300
@@ -110,7 +110,7 @@ class TomographGUI:
 
     def _setup_reconstructed(self):
         self.reco_frame = tk.LabelFrame(master=self.master, text='Odtworzony obraz')
-        self.reco_image = tk.Canvas(master=self.reco_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
+        self.reco_image = tk.Canvas(master=self.reco_frame, width=2*IMAGE_WIDTH, height=2*IMAGE_HEIGHT)
 
         self.reco_frame.grid(row=1, column=2)
         self.reco_image.pack()
@@ -133,7 +133,7 @@ class TomographGUI:
             print('This image type doesn\'t exist')
             return
         # Convert image from numpy array to PIL image and resize it
-        img = PIL.Image.fromarray(image_array).resize((IMAGE_WIDTH, IMAGE_HEIGHT), PIL.Image.ANTIALIAS)
+        img = PIL.Image.fromarray(image_array).resize((canvas.winfo_width(), canvas.winfo_height()), PIL.Image.ANTIALIAS)
         img = PIL.ImageTk.PhotoImage(image=img)
         canvas.create_image(0, 0, anchor=tk.NW, image=img)
         canvas.photo = img

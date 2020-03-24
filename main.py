@@ -3,6 +3,8 @@ from skimage import io
 from gui import TomographGUI
 from tomograph import Tomograph
 import tkinter as tk
+import dicom_handler
+from tkinter import filedialog
 
 IMG_DIR = 'zdjecia'
 
@@ -28,6 +30,20 @@ def get_avail_image_names():
 
 def open_image(img_name):
     return io.imread(os.path.join(IMG_DIR, img_name), as_gray=True)
+
+
+def select_file(path):
+    f_path = filedialog.askopenfilename(initialdir=path, title='Proszę wybrać plik wejściowy',
+                                        filetypes=(
+                                            ('Supported formats', ('*dcm', '*jpg', '*jpeg', '*DCM', '*JPG', '*JPEG')),
+                                            ('JPEG files', ('*jpg', '*jpeg')),
+                                            ('DICOM files', ('*dcm', '*DCM')),
+                                            ('All files', '*')))
+    is_dicom_file = False
+    if f_path:
+        if f_path[-4:].lower() == '.dcm':
+            is_dicom_file = True
+    return f_path, is_dicom_file
 
 
 class Main:
@@ -87,5 +103,10 @@ def main():
     m = Main()
 
 
+def test():
+    select_file('.')
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    test()

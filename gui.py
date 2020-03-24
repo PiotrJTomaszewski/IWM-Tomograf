@@ -2,6 +2,8 @@ import tkinter as tk
 import numpy as np
 import PIL.Image
 import PIL.ImageTk
+import datetime
+import time
 
 # TODO: Set default values
 
@@ -35,6 +37,8 @@ class TomographGUI:
         self.show_steps_iradon_var = tk.IntVar()
         self._setup_iradon_steps(iradon_next_step_clbk)
         self._setup_reconstructed()
+        self._setup_dicom_show()
+        self._setup_dicom_edit()
 
     def _setup_input_image_selection(self, input_image_confirm_clbk):
         self.input_image_frame = tk.LabelFrame(master=self.master, text='Obraz wejściowy')
@@ -110,10 +114,21 @@ class TomographGUI:
 
     def _setup_reconstructed(self):
         self.reco_frame = tk.LabelFrame(master=self.master, text='Odtworzony obraz')
-        self.reco_image = tk.Canvas(master=self.reco_frame, width=2*IMAGE_WIDTH, height=2*IMAGE_HEIGHT)
+        self.reco_image = tk.Canvas(master=self.reco_frame, width=2 * IMAGE_WIDTH, height=2 * IMAGE_HEIGHT)
 
         self.reco_frame.grid(row=1, column=2)
         self.reco_image.pack()
+
+    def _setup_dicom_show(self):
+        self.dicom_show_frame = tk.LabelFrame(master=self.master, text='DICOM')
+        self.dicom_show_list = tk.Listbox(master=self.dicom_show_frame)
+        self.dicom_show_list_last_id = 1
+
+        self.dicom_show_frame.grid(row=1, column=3)
+        self.dicom_show_list.pack()
+
+    def _setup_dicom_edit(self):
+        self.dicom_edit_window = tk.Toplevel(master=self.master)
 
     def display_image(self, image_array, image_type):
         # PIL doesn't support floating point inputs
@@ -133,7 +148,8 @@ class TomographGUI:
             print('This image type doesn\'t exist')
             return
         # Convert image from numpy array to PIL image and resize it
-        img = PIL.Image.fromarray(image_array).resize((canvas.winfo_width(), canvas.winfo_height()), PIL.Image.ANTIALIAS)
+        img = PIL.Image.fromarray(image_array).resize((canvas.winfo_width(), canvas.winfo_height()),
+                                                      PIL.Image.ANTIALIAS)
         img = PIL.ImageTk.PhotoImage(image=img)
         canvas.create_image(0, 0, anchor=tk.NW, image=img)
         canvas.photo = img
@@ -145,7 +161,7 @@ class TomographGUI:
             self.input_image_selection.insert(i, name)
         # Set the first item selected
         # TODO: Doesn't work
-        self.input_image_selection.activate(0)
+        self.input_image_selection.activate(1)
 
     def get_selected_input_image(self):
         return self.input_image_selection.curselection()
@@ -156,17 +172,95 @@ class TomographGUI:
         detectors_spread = self.detectors_spread.get()
         return delta_alpha_step, number_of_detectors, detectors_spread
 
-# def main():
-#     from tomograph import open_all_images
-#
-#     images = open_all_images()
-#     img = images['Shepp_logan']
-#     root = tk.Tk()
-#     gui = Tomograph_GUI(root)
-#     gui.display_image(img, 'input')
-#
-#     root.mainloop()
+    def dicom_show_display_dataset(self, dataset):
+        try:
+            study_id = dataset.StudyID
+        except AttributeError:
+            study_id = 'Brak'
+        self._dicom_show_add_elem('ID badania', study_id)
+        try:
+            series_number = str(dataset.SeriesNumber)
+        except AttributeError:
+            series_number = 'Brak'
+        self._dicom_show_add_elem('Numer seryjny', series_number)
+        try:
+            accession_number = dataset.AccessionNumber
+        except AttributeError:
+            accession_number = 'Brak'
+        self._dicom_show_add_elem('Numer katalogowy', accession_number)
+        try:
+            study_date = time.strptime(dataset.StudyDate, '%Y%m%d')
+            study_date_formatted = time.strftime('%d-%m-%Y', study_date)
+        except AttributeError:
+            study_date_formatted = 'Brak'
+        self._dicom_show_add_elem('Data badania', study_date_formatted)
+        try:
+            study_time = time.strptime(dataset.StudyTime, '%H%M%S.%f')
+            study_time_formatted = time.strftime('%H:%M:%S', study_time)
+        except AttributeError:
+            study_time_formatted = 'Brak'
+        self._dicom_show_add_elem('Godzina badania', study_time_formatted)
+        try:
+            referring_phycician = dataset.ReferringPhysicianName
+        except AttributeError:
+            referring_phycician = 'Brak'
+        if referring_phycician == 'Unknown':
+            referring_phycician = 'Brak'
+        self._dicom_show_add_elem('Lekarz zlecający', str(referring_phycician))
+        try:
+            patient_id = dataset.PatientID
+        except AttributeError:
+            patient_id = 'Brak'
+        self._dicom_show_add_elem('ID pacjenta', patient_id)
+        try:
+            patient_name = str(dataset.PatientName)
+        except AttributeError:
+            patient_name = 'Brak'
+        self._dicom_show_add_elem('Dane osobowe pacjenta', patient_name)
+        try:
+            patient_sex = dataset.PatientSex
+            if patient_sex == 'F':
+                patient_sex = 'Kobieta'
+            elif patient_sex == 'M':
+                patient_sex = 'Mężczyzna'
+        except AttributeError:
+            patient_sex = 'Brak'
+        self._dicom_show_add_elem('Płeć pacjenta', patient_sex)
+        try:
+            patient_birthday = time.strptime(dataset.PatientBirthDate, '%Y%m%d')
+            patient_birthday_formatted = time.strftime('%d-%m-%Y', patient_birthday)
+        except AttributeError:
+            patient_birthday_formatted = 'Brak'
+        self._dicom_show_add_elem('Data ur. pacjenta', patient_birthday_formatted)
+        try:
+            patient_orientation = dataset.PatientOrientation
+        except AttributeError:
+            patient_orientation = 'Brak'
+        self._dicom_show_add_elem('Położenie pacjenta', patient_orientation)
 
-#
-# if __name__ == '__main__':
-#     main()
+    def _dicom_show_add_elem(self, name, value):
+        entry = ': '.join([name, value])
+        print(entry)
+        self.dicom_show_list.insert(self.dicom_show_list_last_id, entry)
+
+        self.dicom_show_list_last_id += 1
+
+    def show_dicom_edit_window(self):
+        self.dicom_edit_window.mainloop()
+
+
+def test():
+    root = tk.Tk()
+    gui = TomographGUI(root, None, None, None, None)
+
+    from dicom_handler import dicom_load, dicom_list_files
+    dcm_files = dicom_list_files('/home/piotr/studia_sem6/IWM/Tomograf/dicom_files')
+    ds = dicom_load(dcm_files['vhf.1501.dcm'])
+    gui.dicom_show_display_dataset(ds)
+
+    root.mainloop()
+    gui.show_dicom_edit_window()
+
+
+if __name__ == '__main__':
+    test()

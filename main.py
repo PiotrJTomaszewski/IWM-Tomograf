@@ -3,6 +3,7 @@ from skimage import io
 from gui import TomographGUI
 from tomograph import Tomograph
 import tkinter as tk
+import dicom_handler
 
 IMG_DIR = 'zdjecia'
 

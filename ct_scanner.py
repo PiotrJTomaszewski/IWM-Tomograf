@@ -157,7 +157,7 @@ class CTScanner:
         return rec_img
 
     def restart_scanner(self):
-
+        pass
 
 
 def _visualize_emitter(image, coords):

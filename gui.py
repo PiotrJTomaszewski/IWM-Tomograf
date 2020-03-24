@@ -23,7 +23,7 @@ IMAGE_WIDTH = 300
 IMAGE_HEIGHT = 300
 
 
-class TomographGUI:
+class CTScannerGUI:
     def __init__(self, master, input_image_select_clbk, sim_options_confirm_clbk, radon_next_step_clbk,
                  iradon_next_step_clbk):
         self.master = master
@@ -239,7 +239,7 @@ class TomographGUI:
 
 def test():
     root = tk.Tk()
-    gui = TomographGUI(root, None, None, None, None)
+    gui = CTScannerGUI(root, None, None, None, None)
 
     from dicom_handler import dicom_load, dicom_list_files
     dcm_files = dicom_list_files('/home/piotr/studia_sem6/IWM/Tomograf/dicom_files')

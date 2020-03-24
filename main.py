@@ -1,7 +1,7 @@
 import os
 from skimage import io
-from gui import TomographGUI
-from ct_scanner import Tomograph
+from gui import CTScannerGUI
+from ct_scanner import CTScanner
 import tkinter as tk
 import dicom_handler
 from tkinter import filedialog
@@ -31,14 +31,14 @@ class Main:
     input_image = None
     is_input_file_dicom = False
     dicom_dataset = None
-    tomograph = None
+    ct_scanner = None
     iradon_initialized = False
     radon_initialized = False
 
     def __init__(self):
-        self.tomograph = Tomograph()
+        self.ct_scanner = CTScanner()
         self.tk_root = tk.Tk()
-        self.gui = TomographGUI(self.tk_root, input_image_select_clbk=self.select_input_img,
+        self.gui = CTScannerGUI(self.tk_root, input_image_select_clbk=self.select_input_img,
                                 sim_options_confirm_clbk=self.simulation_options_changed,
                                 radon_next_step_clbk=self.radon_next_step,
                                 iradon_next_step_clbk=self.iradon_next_step)
@@ -55,37 +55,37 @@ class Main:
                 self.input_image = open_image(file_path)
                 self.gui.dicom_show_frame.pack_forget()
             self.gui.display_image(self.input_image, 'input')
-            self.tomograph.set_input_image(self.input_image)
+            self.ct_scanner.set_input_image(self.input_image)
         self.restart_app()
 
     def simulation_options_changed(self):
         delta_alpha_step, number_of_detectors, detectors_spread = self.gui.get_simulations_options()
-        self.tomograph.set_params(delta_alpha=float(delta_alpha_step), n=int(number_of_detectors),
-                                  l=float(detectors_spread))
+        self.ct_scanner.set_params(delta_alpha=float(delta_alpha_step), n=int(number_of_detectors),
+                                   l=float(detectors_spread))
         # Visualize the scanner
-        self.gui.display_image(self.tomograph.visualize_scanner(), 'options')
+        self.gui.display_image(self.ct_scanner.visualize_scanner(), 'options')
 
     def radon_next_step(self):
         if not self.radon_initialized:
-            self.tomograph.init_radon()
+            self.ct_scanner.init_radon()
             self.radon_initialized = True
         if self.gui.show_steps_radon_var.get() == 1:
-            self.tomograph.radon_transform_step()
+            self.ct_scanner.radon_transform_step()
         else:
-            self.tomograph.radon_transform_full()
-        self.gui.display_image(self.tomograph.visualize_scanner(), 'simulation_step')
-        self.gui.display_image(self.tomograph.visualize_sinogram(), 'sinogram')
+            self.ct_scanner.radon_transform_full()
+        self.gui.display_image(self.ct_scanner.visualize_scanner(), 'simulation_step')
+        self.gui.display_image(self.ct_scanner.visualize_sinogram(), 'sinogram')
 
     def iradon_next_step(self):
         if not self.iradon_initialized:
-            self.tomograph.iradon_init()
+            self.ct_scanner.iradon_init()
             self.iradon_initialized = True
 
         if self.gui.show_steps_iradon_var.get() == 1:
-            self.tomograph.iradon_step()
+            self.ct_scanner.iradon_step()
         else:
-            self.tomograph.iradon_full()
-        self.gui.display_image(self.tomograph.visualize_reconstructed_img(), 'reco_img')
+            self.ct_scanner.iradon_full()
+        self.gui.display_image(self.ct_scanner.visualize_reconstructed_img(), 'reco_img')
 
     def restart_app(self):
         # Useful when changing the input image

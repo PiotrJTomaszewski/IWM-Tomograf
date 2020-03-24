@@ -14,7 +14,7 @@ class CTScanner:
     radon_result = None
     current_radon_iteration = 0
     radon_total_iter_no = 0
-    delta_alpha = 0
+    delta_alpha = 10
     current_alpha = 0
     max_alpha = 180
     # Scanner
@@ -52,7 +52,7 @@ class CTScanner:
     def init_radon(self):
         self.scan_lines = []
         self.current_alpha = 0
-        self.radon_total_iter_no = int(self.max_alpha // self.delta_alpha)
+        self.radon_total_iter_no = math.floor(self.max_alpha / self.delta_alpha)
         self.current_radon_iteration = 0
         self.radon_result = np.zeros((self.em_det_no, self.radon_total_iter_no), dtype=np.int)
 
@@ -61,7 +61,6 @@ class CTScanner:
         Calculate the next step of Radom transform
         :return: False if the transform is done, true if there are still steps available
         """
-        # TODO: Calculate s(?)
         if self.current_radon_iteration < self.radon_total_iter_no:
             emitters, detectors = self._calculate_emitters_detectors_position()
             cur_scan_lines = self._calculate_scan_lines(emitters, detectors)
@@ -81,6 +80,9 @@ class CTScanner:
     def radon_transform_full(self):
         while self.radon_transform_step():
             pass
+
+    def is_radon_finished(self):
+        return self.current_radon_iteration >= self.radon_total_iter_no
 
     def _calculate_emitters_detectors_position(self):
         emitters = []
@@ -109,9 +111,8 @@ class CTScanner:
 
     def init_iradon(self):
         self.current_iradon_iteration = 0
-
         # self.iradon_result = np.zeros((self.image_width, self.image_width), dtype=np.int)
-        self.iradon_result = np.zeros((self.input_image_width, self.input_image_width), dtype=np.int)  # TODO: size
+        self.iradon_result = np.zeros((self.input_image_width, self.input_image_width), dtype=np.int)
 
     def iradon_step(self):
         for s, line in enumerate(self.scan_lines[self.current_iradon_iteration]):
@@ -129,6 +130,9 @@ class CTScanner:
     def iradon_full(self):
         while self.iradon_step():
             pass
+
+    def is_iradon_finished(self):
+        return self.current_iradon_iteration >= self.radon_total_iter_no
 
     def visualize_scanner(self):
         scanner_vis_img = self.input_image.copy()
@@ -167,8 +171,8 @@ class CTScanner:
         return rec_img
 
     def restart_scanner(self):
-        # self.init_radon()
-        # self.init_iradon()
+        self.init_radon()
+        self.init_iradon()
         pass
 
 

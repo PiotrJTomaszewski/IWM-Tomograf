@@ -20,8 +20,11 @@ SPREAD_MIN = 10
 SPREAD_MAX = 180
 SPREAD_INCREMENT = 1
 
-IMAGE_WIDTH = 300
-IMAGE_HEIGHT = 300
+IMAGE_WIDTH = 200
+IMAGE_HEIGHT = 200
+
+AS_IMG_TEXT = 'Jako obraz JPG'
+AS_DICOM_TEXT = 'W formacie DICOM'
 
 
 class CTScannerGUI:
@@ -34,16 +37,17 @@ class CTScannerGUI:
         self._setup_input_data_view()
         self._setup_simulation_options(sim_options_confirm_clbk)
         self.show_steps_radon_var = tk.IntVar()
+        self.enable_filtering_var = tk.IntVar()
         self._setup_show_radon(radon_next_step_clbk)
         self.show_steps_iradon_var = tk.IntVar()
-        self._setup_iradon_steps(iradon_next_step_clbk)
+        self._setup_iradon(iradon_next_step_clbk)
 
     def _setup_menu_bar(self, input_image_select_clbk):
         self.menu_bar = tk.Menu(master=self.master, tearoff=0)
         self.menu_bar.add_command(label='Otwórz plik', command=input_image_select_clbk)
         self.menu_bar_save_menu = tk.Menu(master=self.menu_bar)
-        self.menu_bar_save_menu.add_command(label='Jako obraz JPG', command=None)
-        self.menu_bar_save_menu.add_command(label='W formacie DICOM', command=None)
+        self.menu_bar_save_menu.add_command(label=AS_IMG_TEXT, command=None, state='disabled')
+        self.menu_bar_save_menu.add_command(label=AS_DICOM_TEXT, command=None, state='disabled')
 
         self.menu_bar.add_cascade(label='Zapisz uzyskany obraz', menu=self.menu_bar_save_menu)
         self.master.config(menu=self.menu_bar)
@@ -54,15 +58,16 @@ class CTScannerGUI:
         self.dicom_show_frame = tk.LabelFrame(master=self.input_data_frame, text='DICOM')
         self.dicom_show_list = tk.Listbox(master=self.dicom_show_frame, width=50)
         self.dicom_show_list_next_id = 1
-        self.dicom_edit_btn = tk.Button(master=self.dicom_show_frame, text='Edytuj', command=None)
-        self.input_data_frame.grid(row=0, column=0)
+        self.dicom_edit_btn = tk.Button(master=self.dicom_show_frame, text='Edytuj', command=None,
+                                        state='disabled')
+        self.input_data_frame.grid(row=0, column=0, sticky=tk.N + tk.W, pady=0, ipadx=0)
         self.input_image.pack()
         self.dicom_show_frame.pack()
         self.dicom_show_list.pack()
         self.dicom_edit_btn.pack()
 
     def _setup_simulation_options(self, sim_options_confirm_clbk):
-        self.settings_frame = tk.LabelFrame(master=self.master, text='Opcje')
+        self.settings_frame = tk.LabelFrame(master=self.input_data_frame, text='Ustawienia skanera')
         # Delta alpha step
         self.delta_alpha_step_label = tk.Label(master=self.settings_frame, text='Krok Δα układu emiter/detektor')
         self.delta_alpha_step = tk.Scale(master=self.settings_frame, from_=DELTA_ALPHA_STEP_MIN,
@@ -79,10 +84,11 @@ class CTScannerGUI:
         self.detectors_spread = tk.Scale(master=self.settings_frame, from_=SPREAD_MIN, to=SPREAD_MAX,
                                          resolution=SPREAD_INCREMENT, orient=tk.HORIZONTAL)
         self.options_confirm = tk.Button(master=self.settings_frame, text='Zatwierdź',
-                                         command=sim_options_confirm_clbk)
+                                         command=sim_options_confirm_clbk, state='disabled')
 
-        self.options_image = tk.Canvas(master=self.settings_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
-        self.settings_frame.grid(row=1, column=0)
+        # self.options_image = tk.Canvas(master=self.settings_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
+        # self.settings_frame.grid(row=1, column=0, sticky=tk.N + tk.W, pady=0, ipadx=0)
+        self.settings_frame.pack()
         self.delta_alpha_step_label.pack()
         self.delta_alpha_step.pack()
         self.number_of_detectors_label.pack()
@@ -90,7 +96,7 @@ class CTScannerGUI:
         self.detectors_spread_label.pack()
         self.detectors_spread.pack()
         self.options_confirm.pack()
-        self.options_image.pack()
+        # self.options_image.pack()
 
     def _radon_show_steps_clbk(self):
         """Called when 'show radon steps' option is changed.
@@ -105,12 +111,14 @@ class CTScannerGUI:
         self.show_steps_radon = tk.Checkbutton(master=self.radon_frame, text='Pokazuj kroki pośrednie',
                                                variable=self.show_steps_radon_var,
                                                command=self._radon_show_steps_clbk)
-        self.next_sim_step = tk.Button(master=self.radon_frame, text='Wykonaj', command=radon_next_step_clbk)
+        self.next_sim_step = tk.Button(master=self.radon_frame, text='Wykonaj', command=radon_next_step_clbk,
+                                       state='disabled')
         self.radon_total_progress = ttk.Progressbar(master=self.radon_frame, value=0, maximum=100)
         self.radon_step_progress = ttk.Progressbar(master=self.radon_frame, value=0, maximum=100)
+        # TODO: Add normalization progress
         self.simulation_step_image = tk.Canvas(master=self.radon_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
 
-        self.radon_frame.grid(row=0, column=1)
+        self.radon_frame.grid(row=0, column=2)
         self.show_steps_radon.pack()
         self.next_sim_step.pack()
         self.radon_total_progress.pack()
@@ -127,22 +135,27 @@ class CTScannerGUI:
         else:
             self.next_reco_step.config(text='Wykonaj')
 
-    def _setup_iradon_steps(self, iradon_next_step_clbk):
+    def _setup_iradon(self, iradon_next_step_clbk):
         self.iradon_frame = tk.LabelFrame(master=self.master, text='Odtwarzanie obrazu wejściowego')
         self.show_steps_iradon = tk.Checkbutton(master=self.iradon_frame, text='Pokazuj kroki pośrednie',
                                                 variable=self.show_steps_iradon_var,
                                                 command=self._iradon_show_steps_clbk)
-        self.next_reco_step = tk.Button(master=self.iradon_frame, text='Wykonaj', command=iradon_next_step_clbk)
+        self.enable_filtering = tk.Checkbutton(master=self.iradon_frame, text='Włącz filtr',
+                                               variable=self.enable_filtering_var)
+        self.next_reco_step = tk.Button(master=self.iradon_frame, text='Wykonaj', command=iradon_next_step_clbk,
+                                        state='disabled')
         self.iradon_total_progress = ttk.Progressbar(master=self.iradon_frame, value=0, maximum=100)
         self.iradon_step_progress = ttk.Progressbar(master=self.iradon_frame, value=0, maximum=100)
         self.reco_image = tk.Canvas(master=self.iradon_frame, width=2 * IMAGE_WIDTH, height=2 * IMAGE_HEIGHT)
-
-        self.iradon_frame.grid(row=0, column=2)
+        self.error_label = tk.Label(master=self.iradon_frame)
+        self.iradon_frame.grid(row=0, column=3)
         self.show_steps_iradon.pack()
+        self.enable_filtering.pack()
         self.next_reco_step.pack()
         self.iradon_total_progress.pack()
         self.iradon_step_progress.pack()
         self.reco_image.pack()
+        self.error_label.pack()
 
     def display_image(self, image_array, image_type):
         # PIL doesn't support floating point inputs
@@ -151,7 +164,8 @@ class CTScannerGUI:
         if image_type == 'input':
             canvas = self.input_image
         elif image_type == 'options':
-            canvas = self.options_image
+            # canvas = self.options_image
+            canvas = self.simulation_step_image
         elif image_type == 'simulation_step':
             canvas = self.simulation_step_image
         elif image_type == 'sinogram':
@@ -265,6 +279,35 @@ class CTScannerGUI:
     def set_step_iradon_progress(self, value):
         self.iradon_step_progress['value'] = value
         self.iradon_step_progress.update()
+
+    def toggle_button(self, name, state):
+        """
+        :param name:
+        :param state: True to enable, False to disable
+        """
+        if name == 'dicom_edit':
+            btn = self.dicom_edit_btn
+        elif name == 'options':
+            btn = self.options_confirm
+        elif name == 'radon':
+            btn = self.next_sim_step
+        elif name == 'iradon':
+            btn = self.next_reco_step
+        else:
+            print('Error, button doesn\'t exist')
+            return
+        if state:
+            btn['state'] = 'normal'
+        else:
+            btn['state'] = 'disable'
+
+    def toggle_save_menu(self, state):
+        if state:
+            self.menu_bar_save_menu.entryconfig(AS_IMG_TEXT, state='normal')
+            self.menu_bar_save_menu.entryconfig(AS_DICOM_TEXT, state='normal')
+        else:
+            self.menu_bar_save_menu.entryconfig(AS_IMG_TEXT, state='disabled')
+            self.menu_bar_save_menu.entryconfig(AS_DICOM_TEXT, state='disabled')
 
 
 def test():

@@ -5,12 +5,11 @@ from ct_scanner import CTScanner
 import tkinter as tk
 import dicom_handler
 from tkinter import filedialog
+import numpy as np
 
-IMG_DIR = 'zdjecia'
 
-
-def open_image(img_name):
-    return io.imread(os.path.join(IMG_DIR, img_name), as_gray=True)
+def open_image(img_path):
+    return io.imread(img_path, as_gray=True)
 
 
 def select_file(path):
@@ -27,6 +26,15 @@ def select_file(path):
     return f_path, is_dicom_file
 
 
+def calculate_mse(in_img, out_img):
+    """Calculates the Mean Squared Error of the two images"""
+    error = 0
+    for x in range(in_img.shape[0]):
+        for y in range(in_img.shape[1]):
+            error += (in_img[x, y] - out_img[x, y]) ** 2
+    return error / (in_img.shape[0] * in_img.shape[1])
+
+
 class Main:
     input_image = None
     is_input_file_dicom = False
@@ -34,6 +42,8 @@ class Main:
     ct_scanner = None
     iradon_initialized = False
     radon_initialized = False
+    radon_currently_running = False
+    iradon_currently_running = False
 
     def __init__(self):
         self.tk_root = tk.Tk()
@@ -48,7 +58,6 @@ class Main:
     def select_input_img(self):
         file_path, self.is_input_file_dicom = select_file('.')
         if file_path:
-            self.restart_app()
             if self.is_input_file_dicom:
                 self.dicom_dataset, self.input_image = dicom_handler.dicom_load(file_path)
                 # self.gui.dicom_show_frame.pack()
@@ -60,6 +69,19 @@ class Main:
             self.gui.dicom_show_display_dataset(self.dicom_dataset)
             self.gui.display_image(self.input_image, 'input')
             self.ct_scanner.set_input_image(self.input_image)
+            # "Restart" the app
+            self.ct_scanner.restart_scanner()
+            self.gui.dicom_show_list.delete(0, self.gui.dicom_show_list_next_id)
+            self.gui.dicom_show_list_next_id = 1
+            self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'simulation_step')
+            self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'sinogram')
+            self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'reco_img')
+            self.gui.error_label.config(text='')
+            self.gui.toggle_button('dicom_edit', True)
+            self.gui.toggle_button('options', True)
+            self.gui.toggle_button('radon', False)
+            self.gui.toggle_button('iradon', False)
+            self.gui.toggle_save_menu(False)
 
     def simulation_options_changed(self):
         delta_alpha_step, number_of_detectors, detectors_spread = self.gui.get_simulations_options()
@@ -67,34 +89,50 @@ class Main:
                                    l=float(detectors_spread))
         # Visualize the scanner
         self.gui.display_image(self.ct_scanner.visualize_scanner(), 'options')
+        self.ct_scanner.restart_scanner()
+        self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'sinogram')
+        self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'reco_img')
+        self.gui.toggle_button('radon', True)
+        self.gui.toggle_button('iradon', False)
+        self.gui.toggle_save_menu(False)
 
     def radon_next_step(self):
-        if not self.radon_initialized:
-            self.ct_scanner.init_radon()
-            self.radon_initialized = True
-        if self.gui.show_steps_radon_var.get() == 1:
-            self.ct_scanner.radon_transform_step()
-        else:
-            self.ct_scanner.radon_transform_full()
-        self.gui.display_image(self.ct_scanner.visualize_scanner(), 'simulation_step')
-        self.gui.display_image(self.ct_scanner.visualize_sinogram(), 'sinogram')
+        if not self.radon_currently_running:  # If I spam the button weird things happen, so a quick workaround
+            self.radon_currently_running = True
+            if not self.radon_initialized:
+                self.ct_scanner.init_radon()
+                self.radon_initialized = True
+            if self.gui.show_steps_radon_var.get() == 1:
+                self.ct_scanner.radon_transform_step()
+            else:
+                self.ct_scanner.radon_transform_full()
+            self.gui.display_image(self.ct_scanner.visualize_scanner(), 'simulation_step')
+            self.gui.display_image(self.ct_scanner.visualize_sinogram(), 'sinogram')
+            if self.ct_scanner.is_radon_finished():
+                self.gui.toggle_button('radon', False)
+                self.gui.toggle_button('iradon', True)
+                self.gui.toggle_save_menu(False)
+            self.radon_currently_running = False
 
     def iradon_next_step(self):
-        if not self.iradon_initialized:
-            self.ct_scanner.init_iradon()
-            self.iradon_initialized = True
+        if not self.iradon_currently_running:  # If I spam the button weird things happen, so a quick workaround
+            self.iradon_currently_running = True
+            if not self.iradon_initialized:
+                self.ct_scanner.init_iradon()
+                self.iradon_initialized = True
 
-        if self.gui.show_steps_iradon_var.get() == 1:
-            self.ct_scanner.iradon_step()
-        else:
-            self.ct_scanner.iradon_full()
-        self.gui.display_image(self.ct_scanner.visualize_reconstructed_img(), 'reco_img')
-
-    def restart_app(self):
-        # Useful when changing the input image
-        self.ct_scanner.restart_scanner()
-        self.gui.dicom_show_list.delete(0, self.gui.dicom_show_list_next_id)
-        self.gui.dicom_show_list_next_id = 1
+            if self.gui.show_steps_iradon_var.get() == 1:
+                self.ct_scanner.iradon_step()
+            else:
+                self.ct_scanner.iradon_full()
+            reconstructed_img = self.ct_scanner.visualize_reconstructed_img()
+            self.gui.display_image(reconstructed_img, 'reco_img')
+            if self.ct_scanner.is_iradon_finished():
+                mse = calculate_mse(self.ct_scanner.input_image, reconstructed_img)
+                self.gui.error_label.config(text='Błąd średniokwadratowy: ' + str(np.round(mse, 3)))
+                self.gui.toggle_button('iradon', False)
+                self.gui.toggle_save_menu(True)
+            self.iradon_currently_running = False
 
 
 def main():

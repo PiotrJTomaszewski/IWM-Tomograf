@@ -18,11 +18,16 @@ def dicom_list_files(path):
 
 def dicom_load(path):
     ds = pydicom.dcmread(path)
+    # print(ds)
     return ds, ds.pixel_array.astype(np.uint8)
 
 
 def dicom_save():
     pass
+
+
+def dicom_create_new_dataset():
+    return pydicom.Dataset()
 
 
 def dicom_create_new(file_name, patient_name, patient_id):
@@ -33,7 +38,7 @@ def dicom_create_new(file_name, patient_name, patient_id):
     file_meta.MediaStorageSOPClassUID = '1.2.816.0.1.1680011.2.1322.1.11064548883040.3205072610123282805'
     file_meta.MediaStorageSOPInstanceUID = '1.2.3'
     file_meta.ImplementationClassUID = '7.4.3.5'
-    ds = FileDataset(file_name, {}, file_meta=file_meta, preamble=b"\0"*128)
+    ds = FileDataset(file_name, {}, file_meta=file_meta, preamble=b"\0" * 128)
     ds.PatientName = patient_name
     ds.PatientID = patient_id
 

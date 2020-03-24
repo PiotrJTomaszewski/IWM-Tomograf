@@ -27,8 +27,12 @@ class CTScanner:
     iradon_result = None
     iradon_scaling_factor = 0
 
-    def __init__(self):
-        pass
+    def __init__(self, radon_step_progress_clbk, radon_total_progress_clbk, iradon_step_progress_clbk,
+                 iradon_total_progress_clbk):
+        self.radon_step_progress_clbk = radon_step_progress_clbk
+        self.radon_total_progress_clbk = radon_total_progress_clbk
+        self.iradon_step_progress_clbk = iradon_step_progress_clbk
+        self.iradon_total_progress_clbk = iradon_total_progress_clbk
 
     def set_input_image(self, image):
         self.input_image = make_image_square(image)
@@ -65,7 +69,10 @@ class CTScanner:
             for line_id, line in enumerate(cur_scan_lines):
                 line_integral = np.sum([self.input_image[point] for point in cur_scan_lines[line_id]])
                 self.radon_result[line_id, self.current_radon_iteration] += line_integral
+                if line_id % 5 == 0:
+                    self.radon_step_progress_clbk(100 * line_id / self.em_det_no)
             self.current_alpha += self.delta_alpha
+            self.radon_total_progress_clbk(100 * self.current_radon_iteration / (self.radon_total_iter_no - 1))
             self.current_radon_iteration += 1
             return True
         else:
@@ -100,7 +107,7 @@ class CTScanner:
         return [generate_line(emitters[i][0], emitters[i][1], detectors[i][0], detectors[i][1])
                 for i in range(self.em_det_no)]
 
-    def iradon_init(self):
+    def init_iradon(self):
         self.current_iradon_iteration = 0
 
         # self.iradon_result = np.zeros((self.image_width, self.image_width), dtype=np.int)
@@ -110,6 +117,9 @@ class CTScanner:
         for s, line in enumerate(self.scan_lines[self.current_iradon_iteration]):
             for point in line:
                 self.iradon_result[point] += self.radon_result[s, self.current_iradon_iteration]
+            if s % 5 == 0:
+                self.iradon_step_progress_clbk(100 * s / self.em_det_no)
+        self.iradon_total_progress_clbk(100 * self.current_iradon_iteration / (self.radon_total_iter_no - 1))
         self.current_iradon_iteration += 1
         if self.current_iradon_iteration < self.radon_result.shape[1]:
             return True
@@ -157,6 +167,8 @@ class CTScanner:
         return rec_img
 
     def restart_scanner(self):
+        # self.init_radon()
+        # self.init_iradon()
         pass
 
 
@@ -201,5 +213,5 @@ def make_image_square(image):
         if a > b:
             padding = ((0, 0), (0, a - b))
         else:
-            padding = ((0,b-a), (0,0))
+            padding = ((0, b - a), (0, 0))
         return np.pad(image, padding, mode='constant', constant_values=0)

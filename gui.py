@@ -4,6 +4,7 @@ import PIL.Image
 import PIL.ImageTk
 import datetime
 import time
+from tkinter import ttk
 
 # TODO: Set default values
 
@@ -33,16 +34,18 @@ class CTScannerGUI:
         self._setup_input_data_view()
         self._setup_simulation_options(sim_options_confirm_clbk)
         self.show_steps_radon_var = tk.IntVar()
-        self._setup_radon_steps(radon_next_step_clbk)
-        self._setup_sinogram()
+        self._setup_show_radon(radon_next_step_clbk)
         self.show_steps_iradon_var = tk.IntVar()
         self._setup_iradon_steps(iradon_next_step_clbk)
-        self._setup_reconstructed()
-        self._setup_dicom_edit()
 
     def _setup_menu_bar(self, input_image_select_clbk):
         self.menu_bar = tk.Menu(master=self.master, tearoff=0)
         self.menu_bar.add_command(label='Otwórz plik', command=input_image_select_clbk)
+        self.menu_bar_save_menu = tk.Menu(master=self.menu_bar)
+        self.menu_bar_save_menu.add_command(label='Jako obraz JPG', command=None)
+        self.menu_bar_save_menu.add_command(label='W formacie DICOM', command=None)
+
+        self.menu_bar.add_cascade(label='Zapisz uzyskany obraz', menu=self.menu_bar_save_menu)
         self.master.config(menu=self.menu_bar)
 
     def _setup_input_data_view(self):
@@ -50,11 +53,11 @@ class CTScannerGUI:
         self.input_image = tk.Canvas(master=self.input_data_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
         self.dicom_show_frame = tk.LabelFrame(master=self.input_data_frame, text='DICOM')
         self.dicom_show_list = tk.Listbox(master=self.dicom_show_frame, width=50)
-        self.dicom_show_list_last_id = 1
+        self.dicom_show_list_next_id = 1
         self.dicom_edit_btn = tk.Button(master=self.dicom_show_frame, text='Edytuj', command=None)
         self.input_data_frame.grid(row=0, column=0)
         self.input_image.pack()
-        # self.dicom_show_frame.pack()
+        self.dicom_show_frame.pack()
         self.dicom_show_list.pack()
         self.dicom_edit_btn.pack()
 
@@ -89,44 +92,57 @@ class CTScannerGUI:
         self.options_confirm.pack()
         self.options_image.pack()
 
-    def _setup_radon_steps(self, radon_next_step_clbk):
+    def _radon_show_steps_clbk(self):
+        """Called when 'show radon steps' option is changed.
+        Used only to change the text on a button"""
+        if self.show_steps_radon_var.get() == 1:
+            self.next_sim_step.config(text='Następny krok')
+        else:
+            self.next_sim_step.config(text='Wykonaj')
+
+    def _setup_show_radon(self, radon_next_step_clbk):
         self.radon_frame = tk.LabelFrame(master=self.master, text='Transformata Radona')
         self.show_steps_radon = tk.Checkbutton(master=self.radon_frame, text='Pokazuj kroki pośrednie',
-                                               variable=self.show_steps_radon_var)
+                                               variable=self.show_steps_radon_var,
+                                               command=self._radon_show_steps_clbk)
+        self.next_sim_step = tk.Button(master=self.radon_frame, text='Wykonaj', command=radon_next_step_clbk)
+        self.radon_total_progress = ttk.Progressbar(master=self.radon_frame, value=0, maximum=100)
+        self.radon_step_progress = ttk.Progressbar(master=self.radon_frame, value=0, maximum=100)
         self.simulation_step_image = tk.Canvas(master=self.radon_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
-        self.next_sim_step = tk.Button(master=self.radon_frame, text='Następny krok', command=radon_next_step_clbk)
 
         self.radon_frame.grid(row=0, column=1)
         self.show_steps_radon.pack()
-        self.simulation_step_image.pack()
         self.next_sim_step.pack()
-
-    def _setup_sinogram(self):
-        self.sinogram_frame = tk.LabelFrame(master=self.master, text='Singoram')
-        self.sinogram_image = tk.Canvas(master=self.sinogram_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
-
-        self.sinogram_frame.grid(row=1, column=1)
+        self.radon_total_progress.pack()
+        self.radon_step_progress.pack()
+        self.simulation_step_image.pack()
+        self.sinogram_image = tk.Canvas(master=self.radon_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
         self.sinogram_image.pack()
 
+    def _iradon_show_steps_clbk(self):
+        """Called when 'show image reconstruction steps' option is changed.
+        Used only to change the text on a button"""
+        if self.show_steps_iradon_var.get() == 1:
+            self.next_reco_step.config(text='Następny krok')
+        else:
+            self.next_reco_step.config(text='Wykonaj')
+
     def _setup_iradon_steps(self, iradon_next_step_clbk):
-        self.iradon_frame = tk.LabelFrame(master=self.master, text='Odwrotna transformata Radona')
+        self.iradon_frame = tk.LabelFrame(master=self.master, text='Odtwarzanie obrazu wejściowego')
         self.show_steps_iradon = tk.Checkbutton(master=self.iradon_frame, text='Pokazuj kroki pośrednie',
-                                                variable=self.show_steps_iradon_var)
-        self.next_reco_step = tk.Button(master=self.iradon_frame, text='Następny krok', command=iradon_next_step_clbk)
+                                                variable=self.show_steps_iradon_var,
+                                                command=self._iradon_show_steps_clbk)
+        self.next_reco_step = tk.Button(master=self.iradon_frame, text='Wykonaj', command=iradon_next_step_clbk)
+        self.iradon_total_progress = ttk.Progressbar(master=self.iradon_frame, value=0, maximum=100)
+        self.iradon_step_progress = ttk.Progressbar(master=self.iradon_frame, value=0, maximum=100)
+        self.reco_image = tk.Canvas(master=self.iradon_frame, width=2 * IMAGE_WIDTH, height=2 * IMAGE_HEIGHT)
 
         self.iradon_frame.grid(row=0, column=2)
         self.show_steps_iradon.pack()
         self.next_reco_step.pack()
-
-    def _setup_reconstructed(self):
-        self.reco_frame = tk.LabelFrame(master=self.master, text='Odtworzony obraz')
-        self.reco_image = tk.Canvas(master=self.reco_frame, width=2 * IMAGE_WIDTH, height=2 * IMAGE_HEIGHT)
-
-        self.reco_frame.grid(row=1, column=2)
+        self.iradon_total_progress.pack()
+        self.iradon_step_progress.pack()
         self.reco_image.pack()
-
-    def _setup_dicom_edit(self):
-        self.dicom_edit_window = tk.Toplevel(master=self.master)
 
     def display_image(self, image_array, image_type):
         # PIL doesn't support floating point inputs
@@ -158,7 +174,7 @@ class CTScannerGUI:
         detectors_spread = self.detectors_spread.get()
         return delta_alpha_step, number_of_detectors, detectors_spread
 
-    def dicom_show_display_dataset(self, dataset):
+    def dicom_show_display_dataset(self, dataset):  # TODO: Add comment support
         try:
             study_id = dataset.StudyID
         except AttributeError:
@@ -224,17 +240,31 @@ class CTScannerGUI:
             patient_orientation = 'Brak'
         self._dicom_show_add_elem('Położenie pacjenta', patient_orientation)
         # Adjust list height to fit all fields
-        self.dicom_show_list.config(height=self.dicom_show_list_last_id-1)
+        self.dicom_show_list.config(height=self.dicom_show_list_next_id - 1)
 
     def _dicom_show_add_elem(self, name, value):
         entry = ': '.join([name, value])
-        print(entry)
-        self.dicom_show_list.insert(self.dicom_show_list_last_id, entry)
-
-        self.dicom_show_list_last_id += 1
+        self.dicom_show_list.insert(self.dicom_show_list_next_id, entry)
+        self.dicom_show_list_next_id += 1
 
     def show_dicom_edit_window(self):
-        self.dicom_edit_window.mainloop()
+        pass
+
+    def set_total_radon_progress(self, value):
+        self.radon_total_progress['value'] = value
+        self.radon_total_progress.update()
+
+    def set_step_radon_progress(self, value):
+        self.radon_step_progress['value'] = value
+        self.radon_step_progress.update()
+
+    def set_total_iradon_progress(self, value):
+        self.iradon_total_progress['value'] = value
+        self.iradon_total_progress.update()
+
+    def set_step_iradon_progress(self, value):
+        self.iradon_step_progress['value'] = value
+        self.iradon_step_progress.update()
 
 
 def test():

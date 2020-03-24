@@ -36,27 +36,30 @@ class Main:
     radon_initialized = False
 
     def __init__(self):
-        self.ct_scanner = CTScanner()
         self.tk_root = tk.Tk()
         self.gui = CTScannerGUI(self.tk_root, input_image_select_clbk=self.select_input_img,
                                 sim_options_confirm_clbk=self.simulation_options_changed,
                                 radon_next_step_clbk=self.radon_next_step,
                                 iradon_next_step_clbk=self.iradon_next_step)
+        self.ct_scanner = CTScanner(self.gui.set_step_radon_progress, self.gui.set_total_radon_progress,
+                                    self.gui.set_step_iradon_progress, self.gui.set_total_iradon_progress)
         self.tk_root.mainloop()
 
     def select_input_img(self):
         file_path, self.is_input_file_dicom = select_file('.')
         if file_path:
+            self.restart_app()
             if self.is_input_file_dicom:
                 self.dicom_dataset, self.input_image = dicom_handler.dicom_load(file_path)
-                self.gui.dicom_show_display_dataset(self.dicom_dataset)
-                self.gui.dicom_show_frame.pack()
+                # self.gui.dicom_show_frame.pack()
             else:
                 self.input_image = open_image(file_path)
-                self.gui.dicom_show_frame.pack_forget()
+                self.dicom_dataset = dicom_handler.dicom_create_new_dataset()
+                # self.gui.dicom_show_frame.pack_forget()
+
+            self.gui.dicom_show_display_dataset(self.dicom_dataset)
             self.gui.display_image(self.input_image, 'input')
             self.ct_scanner.set_input_image(self.input_image)
-        self.restart_app()
 
     def simulation_options_changed(self):
         delta_alpha_step, number_of_detectors, detectors_spread = self.gui.get_simulations_options()
@@ -78,7 +81,7 @@ class Main:
 
     def iradon_next_step(self):
         if not self.iradon_initialized:
-            self.ct_scanner.iradon_init()
+            self.ct_scanner.init_iradon()
             self.iradon_initialized = True
 
         if self.gui.show_steps_iradon_var.get() == 1:
@@ -89,7 +92,9 @@ class Main:
 
     def restart_app(self):
         # Useful when changing the input image
-        pass
+        self.ct_scanner.restart_scanner()
+        self.gui.dicom_show_list.delete(0, self.gui.dicom_show_list_next_id)
+        self.gui.dicom_show_list_next_id = 1
 
 
 def main():

@@ -24,12 +24,13 @@ IMAGE_HEIGHT = 300
 
 
 class TomographGUI:
-    def __init__(self, master, input_image_confirm_clbk, sim_options_confirm_clbk, radon_next_step_clbk,
+    def __init__(self, master, input_image_select_clbk, sim_options_confirm_clbk, radon_next_step_clbk,
                  iradon_next_step_clbk):
         self.master = master
         master.title('Symulator tomografu')
         # Create widgets
-        self._setup_input_image_selection(input_image_confirm_clbk)
+        self._setup_menu_bar(input_image_select_clbk)
+        self._setup_input_data_view()
         self._setup_simulation_options(sim_options_confirm_clbk)
         self.show_steps_radon_var = tk.IntVar()
         self._setup_radon_steps(radon_next_step_clbk)
@@ -37,20 +38,25 @@ class TomographGUI:
         self.show_steps_iradon_var = tk.IntVar()
         self._setup_iradon_steps(iradon_next_step_clbk)
         self._setup_reconstructed()
-        self._setup_dicom_show()
         self._setup_dicom_edit()
 
-    def _setup_input_image_selection(self, input_image_confirm_clbk):
-        self.input_image_frame = tk.LabelFrame(master=self.master, text='Obraz wejściowy')
-        self.input_image_selection = tk.Listbox(master=self.input_image_frame)
-        self.input_image_confirm = tk.Button(master=self.input_image_frame, text='Zatwierdź',
-                                             command=input_image_confirm_clbk)
-        self.input_image = tk.Canvas(master=self.input_image_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
+    def _setup_menu_bar(self, input_image_select_clbk):
+        self.menu_bar = tk.Menu(master=self.master, tearoff=0)
+        self.menu_bar.add_command(label='Otwórz plik', command=input_image_select_clbk)
+        self.master.config(menu=self.menu_bar)
 
-        self.input_image_frame.grid(row=0, column=0)
-        self.input_image_selection.pack()
-        self.input_image_confirm.pack()
+    def _setup_input_data_view(self):
+        self.input_data_frame = tk.LabelFrame(master=self.master, text='Dane wejściowe')
+        self.input_image = tk.Canvas(master=self.input_data_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
+        self.dicom_show_frame = tk.LabelFrame(master=self.input_data_frame, text='DICOM')
+        self.dicom_show_list = tk.Listbox(master=self.dicom_show_frame, width=50)
+        self.dicom_show_list_last_id = 1
+        self.dicom_edit_btn = tk.Button(master=self.dicom_show_frame, text='Edytuj', command=None)
+        self.input_data_frame.grid(row=0, column=0)
         self.input_image.pack()
+        # self.dicom_show_frame.pack()
+        self.dicom_show_list.pack()
+        self.dicom_edit_btn.pack()
 
     def _setup_simulation_options(self, sim_options_confirm_clbk):
         self.settings_frame = tk.LabelFrame(master=self.master, text='Opcje')
@@ -119,14 +125,6 @@ class TomographGUI:
         self.reco_frame.grid(row=1, column=2)
         self.reco_image.pack()
 
-    def _setup_dicom_show(self):
-        self.dicom_show_frame = tk.LabelFrame(master=self.master, text='DICOM')
-        self.dicom_show_list = tk.Listbox(master=self.dicom_show_frame)
-        self.dicom_show_list_last_id = 1
-
-        self.dicom_show_frame.grid(row=1, column=3)
-        self.dicom_show_list.pack()
-
     def _setup_dicom_edit(self):
         self.dicom_edit_window = tk.Toplevel(master=self.master)
 
@@ -153,18 +151,6 @@ class TomographGUI:
         img = PIL.ImageTk.PhotoImage(image=img)
         canvas.create_image(0, 0, anchor=tk.NW, image=img)
         canvas.photo = img
-
-    def set_available_input_images(self, image_names):
-        # Clear old options - probably won't be necessary
-        self.input_image_selection.delete(0, last=tk.END)
-        for i, name in enumerate(image_names):
-            self.input_image_selection.insert(i, name)
-        # Set the first item selected
-        # TODO: Doesn't work
-        self.input_image_selection.activate(1)
-
-    def get_selected_input_image(self):
-        return self.input_image_selection.curselection()
 
     def get_simulations_options(self):
         delta_alpha_step = self.delta_alpha_step.get()
@@ -237,6 +223,8 @@ class TomographGUI:
         except AttributeError:
             patient_orientation = 'Brak'
         self._dicom_show_add_elem('Położenie pacjenta', patient_orientation)
+        # Adjust list height to fit all fields
+        self.dicom_show_list.config(height=self.dicom_show_list_last_id-1)
 
     def _dicom_show_add_elem(self, name, value):
         entry = ': '.join([name, value])

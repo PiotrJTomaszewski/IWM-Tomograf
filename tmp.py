@@ -4,7 +4,7 @@ import numpy as np
 import math
 from skimage import io
 import matplotlib.pyplot as plt
-from tomograph import Tomograph
+from ct_scanner import Tomograph
 import pprint
 
 

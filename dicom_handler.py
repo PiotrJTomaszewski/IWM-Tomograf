@@ -18,21 +18,7 @@ def dicom_list_files(path):
 
 def dicom_load(path):
     ds = pydicom.dcmread(path)
-    # print(ds)
-    #
-    # print('Date', ds.StudyDate)
-    # print('Time', ds.StudyTime)
-    # print('Patient ID', ds.PatientID)
-    # print('Study ID', ds.StudyID)
-    # print('Series number', ds.SeriesNumber)
-    # print('Accession number', ds.AccessionNumber)
-    # print('ReferringPhysician\'s name', ds.ReferringPhysicianName)
-    # print('Patient\'s name', ds.PatientName)
-    # print('Patient\'s Date of Birth', ds.PatientBirthDate)
-    # print('Patient\'s sex', ds.PatientSex)
-    # print('Patient\'s orientation', ds.PatientOrientation)
-    return ds
-    # image = ds.pixel_array.astype(np.uint8)
+    return ds, ds.pixel_array.astype(np.uint8)
 
 
 def dicom_save():

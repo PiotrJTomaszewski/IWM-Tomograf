@@ -1,31 +1,12 @@
 import os
 from skimage import io
 from gui import TomographGUI
-from tomograph import Tomograph
+from ct_scanner import Tomograph
 import tkinter as tk
 import dicom_handler
 from tkinter import filedialog
 
 IMG_DIR = 'zdjecia'
-
-
-def open_all_images():
-    """
-    Opens all of the test images as numpy arrays.
-    :return: A dictionary in which image names (without extensions) are keys
-    """
-    images = {}
-    for img_name in os.listdir(IMG_DIR):
-        images[img_name.split('.')[0]] = io.imread(os.path.join(IMG_DIR, img_name), as_gray=True)
-    print('--------------------')
-    print('Available images:')
-    print(list(images.keys()))
-    print('--------------------')
-    return images
-
-
-def get_avail_image_names():
-    return os.listdir(IMG_DIR)
 
 
 def open_image(img_name):
@@ -48,6 +29,8 @@ def select_file(path):
 
 class Main:
     input_image = None
+    is_input_file_dicom = False
+    dicom_dataset = None
     tomograph = None
     iradon_initialized = False
     radon_initialized = False
@@ -55,19 +38,25 @@ class Main:
     def __init__(self):
         self.tomograph = Tomograph()
         self.tk_root = tk.Tk()
-        self.gui = TomographGUI(self.tk_root, input_image_confirm_clbk=self.input_image_selected,
+        self.gui = TomographGUI(self.tk_root, input_image_select_clbk=self.select_input_img,
                                 sim_options_confirm_clbk=self.simulation_options_changed,
                                 radon_next_step_clbk=self.radon_next_step,
                                 iradon_next_step_clbk=self.iradon_next_step)
-        self.avail_img_names = get_avail_image_names()
-        self.gui.set_available_input_images(self.avail_img_names)
         self.tk_root.mainloop()
 
-    def input_image_selected(self):
-        img_id = self.gui.get_selected_input_image()[0]
-        input_image = open_image(self.avail_img_names[img_id])
-        self.gui.display_image(input_image, 'input')
-        self.tomograph.set_input_image(input_image)
+    def select_input_img(self):
+        file_path, self.is_input_file_dicom = select_file('.')
+        if file_path:
+            if self.is_input_file_dicom:
+                self.dicom_dataset, self.input_image = dicom_handler.dicom_load(file_path)
+                self.gui.dicom_show_display_dataset(self.dicom_dataset)
+                self.gui.dicom_show_frame.pack()
+            else:
+                self.input_image = open_image(file_path)
+                self.gui.dicom_show_frame.pack_forget()
+            self.gui.display_image(self.input_image, 'input')
+            self.tomograph.set_input_image(self.input_image)
+        self.restart_app()
 
     def simulation_options_changed(self):
         delta_alpha_step, number_of_detectors, detectors_spread = self.gui.get_simulations_options()
@@ -98,6 +87,10 @@ class Main:
             self.tomograph.iradon_full()
         self.gui.display_image(self.tomograph.visualize_reconstructed_img(), 'reco_img')
 
+    def restart_app(self):
+        # Useful when changing the input image
+        pass
+
 
 def main():
     m = Main()
@@ -108,5 +101,5 @@ def test():
 
 
 if __name__ == '__main__':
-    # main()
-    test()
+    main()
+    # test()

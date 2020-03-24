@@ -2,7 +2,7 @@ from timeit import default_timer as timer
 from main import open_all_images
 from skimage import io
 import numpy as np
-import tomograph
+import ct_scanner
 import tomograph_cythonized
 import inverse_radon
 import inverse_radon_cythonized
@@ -16,7 +16,7 @@ def time_tomograph():
     image = images['Shepp_logan']
 
     start = timer()
-    t1 = tomograph.Tomograph(image, delta_alpha=2.1, n=81, l=75)
+    t1 = ct_scanner.Tomograph(image, delta_alpha=2.1, n=81, l=75)
     end = timer()
     print('Normal init: ', end - start)
 

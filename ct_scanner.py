@@ -28,11 +28,13 @@ class CTScanner:
     iradon_scaling_factor = 0
 
     def __init__(self, radon_step_progress_clbk, radon_total_progress_clbk, iradon_step_progress_clbk,
-                 iradon_total_progress_clbk):
+                 iradon_total_progress_clbk, normalization_radon_progress_clbk, normalization_iradon_progress_clbk):
         self.radon_step_progress_clbk = radon_step_progress_clbk
         self.radon_total_progress_clbk = radon_total_progress_clbk
         self.iradon_step_progress_clbk = iradon_step_progress_clbk
         self.iradon_total_progress_clbk = iradon_total_progress_clbk
+        self.normalization_radon_progress_clbk = normalization_radon_progress_clbk
+        self.normalization_iradon_progress_clbk = normalization_iradon_progress_clbk
 
     def set_input_image(self, image):
         self.input_image = make_image_square(image)
@@ -69,9 +71,9 @@ class CTScanner:
                 line_integral = np.sum([self.input_image[point] for point in cur_scan_lines[line_id]])
                 self.radon_result[line_id, self.current_radon_iteration] += line_integral
                 if line_id % 5 == 0:
-                    self.radon_step_progress_clbk(100 * line_id / self.em_det_no)
+                    self.radon_step_progress_clbk(line_id, self.em_det_no)
             self.current_alpha += self.delta_alpha
-            self.radon_total_progress_clbk(100 * self.current_radon_iteration / (self.radon_total_iter_no - 1))
+            self.radon_total_progress_clbk(self.current_radon_iteration, self.radon_total_iter_no - 1)
             self.current_radon_iteration += 1
             return True
         else:
@@ -119,8 +121,8 @@ class CTScanner:
             for point in line:
                 self.iradon_result[point] += self.radon_result[s, self.current_iradon_iteration]
             if s % 5 == 0:
-                self.iradon_step_progress_clbk(100 * s / self.em_det_no)
-        self.iradon_total_progress_clbk(100 * self.current_iradon_iteration / (self.radon_total_iter_no - 1))
+                self.iradon_step_progress_clbk(s, self.em_det_no)
+        self.iradon_total_progress_clbk(self.current_iradon_iteration, self.radon_total_iter_no - 1)
         self.current_iradon_iteration += 1
         if self.current_iradon_iteration < self.radon_result.shape[1]:
             return True
@@ -156,6 +158,7 @@ class CTScanner:
         max_val = np.max(self.radon_result)
         min_val = np.min(self.radon_result)
         for i in range(len(self.radon_result)):
+            self.normalization_radon_progress_clbk(i, len(self.radon_result))
             for j in range(len(self.radon_result[i])):
                 singoram_image[i, j] = normalize(self.radon_result[i, j], min_val, max_val)
         return singoram_image
@@ -165,6 +168,7 @@ class CTScanner:
         max_val = np.max(self.iradon_result)
         min_val = np.min(self.iradon_result)
         for i in range(len(self.iradon_result)):
+            self.normalization_iradon_progress_clbk(i, len(self.iradon_result))
             for j in range(len(self.iradon_result[i])):
                 rec_img[i, j] = normalize(self.iradon_result[i, j], min_val, max_val)
         # io.imsave("asd.png", rec_img)

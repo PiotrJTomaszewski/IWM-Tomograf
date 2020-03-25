@@ -114,16 +114,26 @@ class CTScannerGUI:
                                                command=self._radon_show_steps_clbk)
         self.next_sim_step = tk.Button(master=self.radon_frame, text='Wykonaj', command=radon_next_step_clbk,
                                        state='disabled')
-        self.radon_total_progress = ttk.Progressbar(master=self.radon_frame, value=0, maximum=100)
-        self.radon_step_progress = ttk.Progressbar(master=self.radon_frame, value=0, maximum=100)
+        self.radon_progress_frame = tk.Frame(master=self.radon_frame)
+        self.radon_total_progress_label = tk.Label(master=self.radon_progress_frame, text='Całkowity postęp')
+        self.radon_total_progress = ttk.Progressbar(master=self.radon_progress_frame, value=0, maximum=100)
+        self.radon_step_progress_label = tk.Label(master=self.radon_progress_frame, text='Postęp iteracji')
+        self.radon_step_progress = ttk.Progressbar(master=self.radon_progress_frame, value=0, maximum=100)
+        self.radon_norm_progress_label = tk.Label(master=self.radon_progress_frame, text='Postęp normalizacji')
+        self.radon_norm_progress = ttk.Progressbar(master=self.radon_progress_frame, value=0, maximum=100)
         # TODO: Add normalization progress
         self.simulation_step_image = tk.Canvas(master=self.radon_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
 
         self.radon_frame.grid(row=0, column=2)
         self.show_steps_radon.pack()
         self.next_sim_step.pack()
-        self.radon_total_progress.pack()
-        self.radon_step_progress.pack()
+        self.radon_progress_frame.pack()
+        self.radon_total_progress_label.grid(row=0, column=0, sticky=tk.W)
+        self.radon_total_progress.grid(row=0, column=1)
+        self.radon_step_progress_label.grid(row=1, column=0, sticky=tk.W)
+        self.radon_step_progress.grid(row=1, column=1)
+        self.radon_norm_progress_label.grid(row=2, column=0, sticky=tk.W)
+        self.radon_norm_progress.grid(row=2, column=1)
         self.simulation_step_image.pack()
         self.sinogram_image = tk.Canvas(master=self.radon_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
         self.sinogram_image.pack()
@@ -145,16 +155,26 @@ class CTScannerGUI:
                                                variable=self.enable_filtering_var)
         self.next_reco_step = tk.Button(master=self.iradon_frame, text='Wykonaj', command=iradon_next_step_clbk,
                                         state='disabled')
-        self.iradon_total_progress = ttk.Progressbar(master=self.iradon_frame, value=0, maximum=100)
-        self.iradon_step_progress = ttk.Progressbar(master=self.iradon_frame, value=0, maximum=100)
+        self.iradon_progress_frame = tk.Frame(master=self.iradon_frame)
+        self.iradon_total_progress_label = tk.Label(master=self.iradon_progress_frame, text='Całkowity postęp')
+        self.iradon_total_progress = ttk.Progressbar(master=self.iradon_progress_frame, value=0, maximum=100)
+        self.iradon_step_progress_label = tk.Label(master=self.iradon_progress_frame, text='Postęp iteracji')
+        self.iradon_step_progress = ttk.Progressbar(master=self.iradon_progress_frame, value=0, maximum=100)
+        self.iradon_norm_progress_label = tk.Label(master=self.iradon_progress_frame, text='Postęp normalizacji')
+        self.iradon_norm_progress = ttk.Progressbar(master=self.iradon_progress_frame, value=0, maximum=100)
         self.reco_image = tk.Canvas(master=self.iradon_frame, width=2 * IMAGE_WIDTH, height=2 * IMAGE_HEIGHT)
         self.error_label = tk.Label(master=self.iradon_frame)
         self.iradon_frame.grid(row=0, column=3)
         self.show_steps_iradon.pack()
         self.enable_filtering.pack()
         self.next_reco_step.pack()
-        self.iradon_total_progress.pack()
-        self.iradon_step_progress.pack()
+        self.iradon_progress_frame.pack()
+        self.iradon_total_progress_label.grid(row=0, column=0, sticky=tk.W)
+        self.iradon_total_progress.grid(row=0, column=1)
+        self.iradon_step_progress_label.grid(row=1, column=0, sticky=tk.W)
+        self.iradon_step_progress.grid(row=1, column=1)
+        self.iradon_norm_progress_label.grid(row=2, column=0, sticky=tk.W)
+        self.iradon_norm_progress.grid(row=2, column=1)
         self.reco_image.pack()
         self.error_label.pack()
 
@@ -265,21 +285,30 @@ class CTScannerGUI:
     def show_dicom_edit_window(self):
         pass
 
-    def set_total_radon_progress(self, value):
-        self.radon_total_progress['value'] = value
-        self.radon_total_progress.update()
+    def set_total_radon_progress(self, cur_val, max_val=None):
+        self._set_progress(self.radon_total_progress, cur_val, max_val)
 
-    def set_step_radon_progress(self, value):
-        self.radon_step_progress['value'] = value
-        self.radon_step_progress.update()
+    def set_step_radon_progress(self, cur_val, max_val=None):
+        self._set_progress(self.radon_step_progress, cur_val, max_val)
 
-    def set_total_iradon_progress(self, value):
-        self.iradon_total_progress['value'] = value
-        self.iradon_total_progress.update()
+    def set_total_iradon_progress(self, cur_val, max_val=None):
+        self._set_progress(self.iradon_total_progress, cur_val, max_val)
 
-    def set_step_iradon_progress(self, value):
-        self.iradon_step_progress['value'] = value
-        self.iradon_step_progress.update()
+    def set_step_iradon_progress(self, cur_val, max_val=None):
+        self._set_progress(self.iradon_step_progress, cur_val, max_val)
+
+    def set_normalization_radon_progress(self, cur_val, max_val=None):
+        self._set_progress(self.radon_norm_progress, cur_val, max_val)
+
+    def set_normalization_iradon_progress(self, cur_val, max_val=None):
+        self._set_progress(self.iradon_norm_progress, cur_val, max_val)
+
+    def _set_progress(self, field, cur_val, max_val=None):
+        if max_val:
+            field['value'] = 100 * cur_val / max_val
+        else:
+            field['value'] = cur_val
+        field.update()
 
     def toggle_button(self, name, state):
         """

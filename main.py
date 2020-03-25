@@ -54,7 +54,9 @@ class Main:
                                 iradon_next_step_clbk=self.iradon_next_step,
                                 dicom_edit_clbk=self.dicom_edit_clbk)
         self.ct_scanner = CTScanner(self.gui.set_step_radon_progress, self.gui.set_total_radon_progress,
-                                    self.gui.set_step_iradon_progress, self.gui.set_total_iradon_progress)
+                                    self.gui.set_step_iradon_progress, self.gui.set_total_iradon_progress,
+                                    self.gui.set_normalization_radon_progress,
+                                    self.gui.set_normalization_iradon_progress)
         self.tk_root.mainloop()
 
     def select_input_img(self):
@@ -78,6 +80,11 @@ class Main:
             self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'simulation_step')
             self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'sinogram')
             self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'reco_img')
+            self.gui.set_step_radon_progress(0)
+            self.gui.set_total_radon_progress(0)
+            self.gui.set_step_iradon_progress(0)
+            self.gui.set_total_iradon_progress(0)
+            self.gui.set_normalization_iradon_progress(0)
             self.gui.error_label.config(text='')
             self.gui.toggle_button('dicom_edit', True)
             self.gui.toggle_button('options', True)
@@ -94,6 +101,11 @@ class Main:
         self.ct_scanner.restart_scanner()
         self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'sinogram')
         self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'reco_img')
+        self.gui.set_step_radon_progress(0)
+        self.gui.set_total_radon_progress(0)
+        self.gui.set_step_iradon_progress(0)
+        self.gui.set_total_iradon_progress(0)
+        self.gui.set_normalization_iradon_progress(0)
         self.gui.toggle_button('radon', True)
         self.gui.toggle_button('iradon', False)
         self.gui.toggle_save_menu(False)
@@ -101,6 +113,8 @@ class Main:
     def radon_next_step(self):
         if not self.radon_currently_running:  # If I spam the button weird things happen, so a quick workaround
             self.radon_currently_running = True
+            self.gui.toggle_button('radon', False)
+            self.gui.set_normalization_radon_progress(0)
             if not self.radon_initialized:
                 self.ct_scanner.init_radon()
                 self.radon_initialized = True
@@ -110,6 +124,7 @@ class Main:
                 self.ct_scanner.radon_transform_full()
             self.gui.display_image(self.ct_scanner.visualize_scanner(), 'simulation_step')
             self.gui.display_image(self.ct_scanner.visualize_sinogram(), 'sinogram')
+            self.gui.toggle_button('radon', True)
             if self.ct_scanner.is_radon_finished():
                 self.gui.toggle_button('radon', False)
                 self.gui.toggle_button('iradon', True)
@@ -119,6 +134,8 @@ class Main:
     def iradon_next_step(self):
         if not self.iradon_currently_running:  # If I spam the button weird things happen, so a quick workaround
             self.iradon_currently_running = True
+            self.gui.toggle_button('iradon', False)
+            self.gui.set_normalization_iradon_progress(0)
             if not self.iradon_initialized:
                 self.ct_scanner.init_iradon()
                 self.iradon_initialized = True
@@ -129,6 +146,7 @@ class Main:
                 self.ct_scanner.iradon_full()
             reconstructed_img = self.ct_scanner.visualize_reconstructed_img()
             self.gui.display_image(reconstructed_img, 'reco_img')
+            self.gui.toggle_button('iradon', True)
             if self.ct_scanner.is_iradon_finished():
                 mse = calculate_mse(self.ct_scanner.input_image, reconstructed_img)
                 self.gui.error_label.config(text='Błąd średniokwadratowy: ' + str(np.round(mse, 3)))

@@ -5,6 +5,7 @@ import PIL.ImageTk
 import datetime
 import time
 from tkinter import ttk
+from dicom_handler import dicom_date_dataset_to_display, dicom_time_dataset_to_display
 
 # TODO: Set default values
 
@@ -29,12 +30,12 @@ AS_DICOM_TEXT = 'W formacie DICOM'
 
 class CTScannerGUI:
     def __init__(self, master, input_image_select_clbk, sim_options_confirm_clbk, radon_next_step_clbk,
-                 iradon_next_step_clbk):
+                 iradon_next_step_clbk, dicom_edit_clbk):
         self.master = master
         master.title('Symulator tomografu')
         # Create widgets
         self._setup_menu_bar(input_image_select_clbk)
-        self._setup_input_data_view()
+        self._setup_input_data_view(dicom_edit_clbk)
         self._setup_simulation_options(sim_options_confirm_clbk)
         self.show_steps_radon_var = tk.IntVar()
         self.enable_filtering_var = tk.IntVar()
@@ -52,13 +53,13 @@ class CTScannerGUI:
         self.menu_bar.add_cascade(label='Zapisz uzyskany obraz', menu=self.menu_bar_save_menu)
         self.master.config(menu=self.menu_bar)
 
-    def _setup_input_data_view(self):
+    def _setup_input_data_view(self, dicom_edit_clbk):
         self.input_data_frame = tk.LabelFrame(master=self.master, text='Dane wejściowe')
         self.input_image = tk.Canvas(master=self.input_data_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
         self.dicom_show_frame = tk.LabelFrame(master=self.input_data_frame, text='DICOM')
         self.dicom_show_list = tk.Listbox(master=self.dicom_show_frame, width=50)
         self.dicom_show_list_next_id = 1
-        self.dicom_edit_btn = tk.Button(master=self.dicom_show_frame, text='Edytuj', command=None,
+        self.dicom_edit_btn = tk.Button(master=self.dicom_show_frame, text='Edytuj', command=dicom_edit_clbk,
                                         state='disabled')
         self.input_data_frame.grid(row=0, column=0, sticky=tk.N + tk.W, pady=0, ipadx=0)
         self.input_image.pack()
@@ -205,22 +206,18 @@ class CTScannerGUI:
             accession_number = 'Brak'
         self._dicom_show_add_elem('Numer katalogowy', accession_number)
         try:
-            study_date = time.strptime(dataset.StudyDate, '%Y%m%d')
-            study_date_formatted = time.strftime('%d-%m-%Y', study_date)
+            study_date = dicom_date_dataset_to_display(dataset.StudyDate)
         except AttributeError:
-            study_date_formatted = 'Brak'
-        self._dicom_show_add_elem('Data badania', study_date_formatted)
+            study_date = 'Brak'
+        self._dicom_show_add_elem('Data badania', study_date)
         try:
-            study_time = time.strptime(dataset.StudyTime, '%H%M%S.%f')
-            study_time_formatted = time.strftime('%H:%M:%S', study_time)
+            study_time = dicom_time_dataset_to_display(dataset.StudyTime)
         except AttributeError:
-            study_time_formatted = 'Brak'
-        self._dicom_show_add_elem('Godzina badania', study_time_formatted)
+            study_time = 'Brak'
+        self._dicom_show_add_elem('Godzina badania', study_time)
         try:
             referring_phycician = dataset.ReferringPhysicianName
         except AttributeError:
-            referring_phycician = 'Brak'
-        if referring_phycician == 'Unknown':
             referring_phycician = 'Brak'
         self._dicom_show_add_elem('Lekarz zlecający', str(referring_phycician))
         try:
@@ -243,16 +240,20 @@ class CTScannerGUI:
             patient_sex = 'Brak'
         self._dicom_show_add_elem('Płeć pacjenta', patient_sex)
         try:
-            patient_birthday = time.strptime(dataset.PatientBirthDate, '%Y%m%d')
-            patient_birthday_formatted = time.strftime('%d-%m-%Y', patient_birthday)
+            patient_birthday = dicom_date_dataset_to_display(dataset.PatientBirthDay)
         except AttributeError:
-            patient_birthday_formatted = 'Brak'
-        self._dicom_show_add_elem('Data ur. pacjenta', patient_birthday_formatted)
+            patient_birthday = 'Brak'
+        self._dicom_show_add_elem('Data ur. pacjenta', patient_birthday)
         try:
             patient_orientation = dataset.PatientOrientation
         except AttributeError:
             patient_orientation = 'Brak'
         self._dicom_show_add_elem('Położenie pacjenta', patient_orientation)
+        try:
+            comment = ''  # TODO: Find which attribute it is
+        except AttributeError:
+            comment = 'Brak'
+        self._dicom_show_add_elem('Komentarz', comment)
         # Adjust list height to fit all fields
         self.dicom_show_list.config(height=self.dicom_show_list_next_id - 1)
 

@@ -6,6 +6,7 @@ import tkinter as tk
 import dicom_handler
 from tkinter import filedialog
 import numpy as np
+from dicom_edit_dialog import DicomEditDialog
 
 
 def open_image(img_path):
@@ -50,7 +51,8 @@ class Main:
         self.gui = CTScannerGUI(self.tk_root, input_image_select_clbk=self.select_input_img,
                                 sim_options_confirm_clbk=self.simulation_options_changed,
                                 radon_next_step_clbk=self.radon_next_step,
-                                iradon_next_step_clbk=self.iradon_next_step)
+                                iradon_next_step_clbk=self.iradon_next_step,
+                                dicom_edit_clbk=self.dicom_edit_clbk)
         self.ct_scanner = CTScanner(self.gui.set_step_radon_progress, self.gui.set_total_radon_progress,
                                     self.gui.set_step_iradon_progress, self.gui.set_total_iradon_progress)
         self.tk_root.mainloop()
@@ -133,6 +135,9 @@ class Main:
                 self.gui.toggle_button('iradon', False)
                 self.gui.toggle_save_menu(True)
             self.iradon_currently_running = False
+
+    def dicom_edit_clbk(self):
+        dialog = DicomEditDialog(master=self.tk_root, dataset=self.dicom_dataset)
 
 
 def main():

@@ -5,6 +5,23 @@ from skimage import io
 import tempfile
 import datetime
 from pydicom.dataset import Dataset, FileDataset
+import time
+
+
+def dicom_date_dataset_to_display(date):
+    return time.strftime('%d-%m-%Y', time.strptime(date, '%Y%m%d'))
+
+
+def dicom_date_display_to_dataset(date):
+    return time.strftime('%Y%m%d', time.strptime(date, '%d-%m-%Y'))
+
+
+def dicom_time_dataset_to_display(t):
+    return time.strftime('%H:%M:%S', time.strptime(t, '%H%M%S.%f'))
+
+
+def dicom_time_display_to_dataset(t):
+    return time.strftime('%H%M%S.%f', time.strptime(t, '%H:%M:%S'))
 
 
 def dicom_list_files(path):

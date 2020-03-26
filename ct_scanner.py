@@ -37,6 +37,8 @@ class CTScanner:
         self.normalization_iradon_progress_clbk = normalization_iradon_progress_clbk
 
     def set_input_image(self, image):
+        if image.dtype == np.float64:
+            image = (image * 255).astype(np.uint8)
         self.input_image = make_image_square(image)
         self.circumcircle_diameter = int(self.input_image.shape[0] * math.sqrt(2))
         self.scanner_vis_img_padding = (self.circumcircle_diameter - self.input_image.shape[0]) // 2 + 10
@@ -151,7 +153,7 @@ class CTScanner:
     def _visualize_circumcircle(self, image):
         rr, cc = draw.circle_perimeter(r=self.input_image_center, c=self.input_image_center,
                                        radius=int(self.circumcircle_diameter / 2))
-        image[rr, cc] = 1
+        image[rr, cc] = 255
 
     def visualize_sinogram(self):
         singoram_image = np.zeros((self.radon_result.shape[0], self.radon_result.shape[1]), dtype=np.uint8)
@@ -171,7 +173,6 @@ class CTScanner:
             self.normalization_iradon_progress_clbk(i, len(self.iradon_result))
             for j in range(len(self.iradon_result[i])):
                 rec_img[i, j] = normalize(self.iradon_result[i, j], min_val, max_val)
-        # io.imsave("asd.png", rec_img)
         return rec_img
 
     def restart_scanner(self):
@@ -182,18 +183,18 @@ class CTScanner:
 
 def _visualize_emitter(image, coords):
     rr, cc = draw.circle(r=coords[0], c=coords[1], radius=10)
-    image[rr, cc] = 1
+    image[rr, cc] = 255
 
 
 def _visualize_detector(image, coords):
     rr, cc = draw.circle(r=coords[0], c=coords[1], radius=10)
-    image[rr, cc] = 0.5
+    image[rr, cc] = 127
 
 
 def _visualize_scan_lines(image, scan_lines):
     for line in scan_lines:
         for a, b in line:
-            image[a][b] = 1
+            image[a][b] = 255
 
 
 def filter(line):

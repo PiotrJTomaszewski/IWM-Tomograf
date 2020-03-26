@@ -25,6 +25,7 @@ def dicom_time_display_to_dataset(t):
 
 
 def dicom_list_files(path):
+    """Used only in testing"""
     dcm_files = {}
     for root, dirs, files in os.walk(path):
         for file in files:
@@ -36,7 +37,13 @@ def dicom_list_files(path):
 def dicom_load(path):
     ds = pydicom.dcmread(path)
     # print(ds)
-    return ds, ds.pixel_array.astype(np.uint8)
+    image = ds.pixel_array
+    # Convert the image data type to uint8
+    if image.dtype != np.uint8:
+        img_max = np.max(image)
+        img_min = np.min(image)
+        image = 255 * (image - img_min) / (img_max - img_min)
+    return ds, image.astype(np.uint8)
 
 
 def dicom_save():

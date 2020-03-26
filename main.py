@@ -70,13 +70,14 @@ class Main:
                 self.dicom_dataset = dicom_handler.dicom_create_new_dataset()
                 # self.gui.dicom_show_frame.pack_forget()
 
-            self.gui.dicom_show_display_dataset(self.dicom_dataset)
             self.gui.display_image(self.input_image, 'input')
             self.ct_scanner.set_input_image(self.input_image)
             # "Restart" the app
             self.ct_scanner.restart_scanner()
             self.gui.dicom_show_list.delete(0, self.gui.dicom_show_list_next_id)
             self.gui.dicom_show_list_next_id = 1
+            self.gui.dicom_show_display_dataset(self.dicom_dataset)
+
             self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'simulation_step')
             self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'sinogram')
             self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'reco_img')
@@ -84,6 +85,8 @@ class Main:
             self.gui.set_total_radon_progress(0)
             self.gui.set_step_iradon_progress(0)
             self.gui.set_total_iradon_progress(0)
+            self.gui.set_step_radon_progress(0)
+            self.gui.set_normalization_radon_progress(0)
             self.gui.set_normalization_iradon_progress(0)
             self.gui.error_label.config(text='')
             self.gui.toggle_button('dicom_edit', True)
@@ -105,6 +108,7 @@ class Main:
         self.gui.set_total_radon_progress(0)
         self.gui.set_step_iradon_progress(0)
         self.gui.set_total_iradon_progress(0)
+        self.gui.set_normalization_radon_progress(0)
         self.gui.set_normalization_iradon_progress(0)
         self.gui.toggle_button('radon', True)
         self.gui.toggle_button('iradon', False)

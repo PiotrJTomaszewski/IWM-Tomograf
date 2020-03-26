@@ -52,7 +52,8 @@ class Main:
                                 sim_options_confirm_clbk=self.simulation_options_changed,
                                 radon_next_step_clbk=self.radon_next_step,
                                 iradon_next_step_clbk=self.iradon_next_step,
-                                dicom_edit_clbk=self.dicom_edit_clbk)
+                                dicom_edit_clbk=self.dicom_edit_clbk,
+                                dicom_save_clbk=self.dicom_show_save_dialog)
         self.ct_scanner = CTScanner(self.gui.set_step_radon_progress, self.gui.set_total_radon_progress,
                                     self.gui.set_step_iradon_progress, self.gui.set_total_iradon_progress,
                                     self.gui.set_normalization_radon_progress,
@@ -74,9 +75,9 @@ class Main:
             self.ct_scanner.set_input_image(self.input_image)
             # "Restart" the app
             self.ct_scanner.restart_scanner()
-            self.gui.dicom_show_list.delete(0, self.gui.dicom_show_list_next_id)
-            self.gui.dicom_show_list_next_id = 1
-            self.gui.dicom_show_display_dataset(self.dicom_dataset)
+            # self.gui.dicom_show_list.delete(0, self.gui.dicom_show_list_next_id)
+            # self.gui.dicom_show_list_next_id = 1
+            self.gui.dicom_load_current_values(dicom_handler.dicom_read_dataset(self.dicom_dataset))
 
             self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'simulation_step')
             self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'sinogram')
@@ -93,7 +94,8 @@ class Main:
             self.gui.toggle_button('options', True)
             self.gui.toggle_button('radon', False)
             self.gui.toggle_button('iradon', False)
-            self.gui.toggle_save_menu(False)
+            self.gui.toggle_save_jpg_menu(False)
+            self.gui.toggle_save_dicom_menu(False)
 
     def simulation_options_changed(self):
         delta_alpha_step, number_of_detectors, detectors_spread = self.gui.get_simulations_options()
@@ -112,7 +114,8 @@ class Main:
         self.gui.set_normalization_iradon_progress(0)
         self.gui.toggle_button('radon', True)
         self.gui.toggle_button('iradon', False)
-        self.gui.toggle_save_menu(False)
+        self.gui.toggle_save_jpg_menu(False)
+        self.gui.toggle_save_dicom_menu(False)
 
     def radon_next_step(self):
         if not self.radon_currently_running:  # If I spam the button weird things happen, so a quick workaround
@@ -132,7 +135,8 @@ class Main:
             if self.ct_scanner.is_radon_finished():
                 self.gui.toggle_button('radon', False)
                 self.gui.toggle_button('iradon', True)
-                self.gui.toggle_save_menu(False)
+                self.gui.toggle_save_jpg_menu(False)
+                self.gui.toggle_save_dicom_menu(False)
             self.radon_currently_running = False
 
     def iradon_next_step(self):
@@ -152,14 +156,27 @@ class Main:
             self.gui.display_image(reconstructed_img, 'reco_img')
             self.gui.toggle_button('iradon', True)
             if self.ct_scanner.is_iradon_finished():
-                mse = calculate_mse(self.ct_scanner.input_image, reconstructed_img)
+                mse = calculate_mse(self.ct_scanner.input_image, reconstructed_img)  # TODO: Add a button for mse
                 self.gui.error_label.config(text='Błąd średniokwadratowy: ' + str(np.round(mse, 3)))
                 self.gui.toggle_button('iradon', False)
-                self.gui.toggle_save_menu(True)
+                self.gui.toggle_save_jpg_menu(True)
+                self.gui.toggle_save_dicom_menu(True)
             self.iradon_currently_running = False
 
     def dicom_edit_clbk(self):
-        dialog = DicomEditDialog(master=self.tk_root, dataset=self.dicom_dataset)
+        data = self.gui.get_dicom_fields_content()
+        is_data_ok, error_msg = dicom_handler.dicom_check_data(data)
+        if is_data_ok:
+            self.dicom_dataset = dicom_handler.dicom_store_data(data, self.dicom_dataset)
+            self.gui.error_msg_var.set('Pomyślnie zaktualizowano dane')
+        else:
+            self.gui.error_msg_var.set(error_msg)
+
+    def dicom_show_save_dialog(self):
+        f_path = filedialog.asksaveasfilename(initialdir='.', title='Zapisz wynik w formacie DICOM',
+                                              filetypes=[['DICOM files', ('*dcm', '*DCM')]])
+        if f_path and f_path != '':
+            dicom_handler.dicom_save(f_path, self.dicom_dataset, self.ct_scanner.visualize_reconstructed_img())
 
 
 def main():

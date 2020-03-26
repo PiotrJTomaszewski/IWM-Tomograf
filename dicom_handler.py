@@ -1,11 +1,11 @@
-import pydicom
 import os
-import numpy as np
-from skimage import io
 import tempfile
-import datetime
-from pydicom.dataset import Dataset, FileDataset
 import time
+
+import numpy as np
+import pydicom
+from pydicom.dataset import Dataset, FileDataset
+import pydicom.uid
 
 
 def dicom_date_dataset_to_display(date):
@@ -21,7 +21,7 @@ def dicom_time_dataset_to_display(t):
 
 
 def dicom_time_display_to_dataset(t):
-    return time.strftime('%H%M%S.%f', time.strptime(t, '%H:%M:%S'))
+    return time.strftime('%H%M%S.0000', time.strptime(t, '%H:%M:%S'))
 
 
 def dicom_list_files(path):
@@ -46,33 +46,174 @@ def dicom_load(path):
     return ds, image.astype(np.uint8)
 
 
-def dicom_save():
-    pass
-
-
 def dicom_create_new_dataset():
-    return pydicom.Dataset()
-
-
-def dicom_create_new(file_name, patient_name, patient_id):
     suffix = '.dcm'
     file_name = tempfile.NamedTemporaryFile(suffix=suffix).name
-    # Set the required values
     file_meta = Dataset()
-    file_meta.MediaStorageSOPClassUID = '1.2.816.0.1.1680011.2.1322.1.11064548883040.3205072610123282805'
-    file_meta.MediaStorageSOPInstanceUID = '1.2.3'
-    file_meta.ImplementationClassUID = '7.4.3.5'
+    # Set the required values
+    file_meta.MediaStorageSOPClassUID = '1.2.840.10008.5.1.4.1.1.2'
+    file_meta.MediaStorageSOPInstanceUID = "1.3.6.1.4.1.5962.1.1.1.1.1.20040119072730.12322"
+    file_meta.ImplementationClassUID = "1.3.6.1.4.1.5962.2"
+    file_meta.TransferSyntaxUID = '1.2.840.10008.1.2'
     ds = FileDataset(file_name, {}, file_meta=file_meta, preamble=b"\0" * 128)
-    ds.PatientName = patient_name
-    ds.PatientID = patient_id
+    return ds
 
-    ds.is_little_endian = True
-    ds.is_implicit_VR = True
-    dt = datetime.datetime.now()
-    ds.ContentDate = dt.strftime('%Y%m%d')
-    time_str = dt.strftime('%H%M%S.%f')
-    ds.ContentTime = time_str
-    ds.save_as(file_name)
+
+def dicom_save(file_name, dataset, image):
+    """
+    Saves a dataset to a .dcm file.
+    This function checks whether the dataset contains a pixelarray field (an input image).
+    If it doesn't the image parameter is used as one.
+    """
+    dataset.PixelData = image.tobytes()
+    dataset.Rows, dataset.Columns = image.shape
+    dataset.BitsStored = 8
+    dataset.BitsAllocated = 8
+    dataset.HighBit = 7
+    dataset.SamplesPerPixel = 1
+    dataset.PhotometricInterpretation = "MONOCHROME2"
+    dataset.PixelRepresentation = 0
+    # dt = datetime.datetime.now()
+    # dataset.ContentDate = dt.strftime('%Y%m%d')
+    # time_str = dt.strftime('%H%M%S.%f')
+    # dataset.ContentTime = time_str
+    dataset.save_as(file_name, write_like_original=False)
+
+
+def dicom_read_dataset(dataset):
+    """Get all interesting fields from the dataset and convert some fields to a more user friendly format"""
+    data = {}
+    # try:
+    #     self.study_id_field.insert(0, str(self.dataset.StudyID))
+    # except AttributeError:
+    #     pass
+    # try:
+    #     self.series_number_field.insert(0, str(self.dataset.SeriesNumber))
+    # except AttributeError:
+    #     pass
+    # try:
+    #     self.accession_number_field.insert(0, str(self.dataset.AccessionNumber))
+    # except AttributeError:
+    #     pass
+    try:
+        data['StudyDate'] = dicom_date_dataset_to_display(dataset.StudyDate)
+    except AttributeError:
+        data['StudyDate'] = ''
+    try:
+        data['StudyTime'] = dicom_time_dataset_to_display(dataset.StudyTime)
+    except AttributeError:
+        data['StudyTime'] = ''
+    # try:
+    #     self.referring_phycisian_field.insert(0, str(self.dataset.ReferringPhysicianName))
+    # except AttributeError:
+    #     pass
+    try:
+        data['PatientID'] = str(dataset.PatientID)
+    except AttributeError:
+        data['PatientID'] = ''
+    try:
+        patient_name = dataset.PatientName
+        data['PatientGivenName'] = patient_name.given_name
+        data['PatientFamilyName'] = patient_name.family_name
+    except AttributeError:
+        pass
+    if not data.get('PatientGivenName'):
+        data['PatientGivenName'] = ''
+    if not data.get('PatientFamilyName'):
+        data['PatientFamilyName'] = ''
+    try:
+        sex = dataset.PatientSex
+        if sex == 'F':
+            data['PatientSex'] = 'Kobieta'
+        elif sex == 'M':
+            data['PatientSex'] = 'Mężczyzna'
+    except AttributeError:
+        data['PatientSex'] = ''
+    try:
+        data['PatientBirthDate'] = dicom_date_dataset_to_display(dataset.PatientBirthDate)
+    except AttributeError:
+        data['PatientBirthDate'] = ''
+    # try:
+    #     self.patient_orientation_field.insert(0, str(self.dataset.PatientOrientation))
+    # except AttributeError:
+    #     pass
+    try:
+        print('TODO: Implement comments')  # TODO: Seriously, implement comments :)
+    except AttributeError:
+        pass
+    return data
+
+
+def dicom_store_data(data, dataset):
+    """Stores data from the data dictionary to a provided DICOM dataset.
+    This function assumes that the provided data is correct and thus won't check it"""
+    # self.dataset.StudyID = self.study_id_field.get()
+    # self.dataset.SeriesNumber = self.series_number_field.get()
+    # self.dataset.AccessionNumber = self.accession_number_field.get()
+    if data.get('StudyDate'):
+        dataset.StudyDate = dicom_date_display_to_dataset(data.get('StudyDate'))
+    if data.get('StudyTime'):
+        dataset.StudyTime = dicom_time_display_to_dataset(data.get('StudyTime'))
+    # self.dataset.ReferringPhysicianName = self.referring_phycisian_field.get()
+    if data.get('PatientGivenName') or data.get('PatientFamilyName'):
+        patient_given_name = data.get('PatientGivenName') or ''
+        patient_family_name = data.get('PatientFamilyName') or ''
+        dataset.PatientName = '^'.join((patient_family_name, patient_given_name))
+    if data.get('PatientID'):
+        dataset.PatientID = data.get('PatientID')
+    if data.get('PatientSex'):
+        if data.get('PatientSex') == 'Mężczyzna':
+            dataset.PatientSex = 'M'
+        elif data.get('PatientSex') == 'Kobieta':
+            dataset.PatientSex = 'F'
+    if data.get('PatientBirthDate'):
+        dataset.PatientBirthDate = dicom_date_display_to_dataset(data.get('PatientBirthDate'))
+    # self.dataset.PatientOrientation = self.patient_orientation_field.get()
+    # TODO: Add comment support
+    return dataset
+
+
+def dicom_check_data(data):
+    """Checks if data is correct"""
+    # if not self._is_not_empty(self.study_id_field.get()):
+    #     return False
+    # if not self._is_not_empty(self.series_number_field.get()):
+    #     return False
+    # if not self._is_not_empty(self.accession_number_field.get()):
+    #     return False
+    if data.get('StudyDate'):
+        result, error_msg = _is_date_correct(data.get('StudyDate'))
+        if not result:
+            return False, error_msg
+    if data.get('StudyTime'):
+        result, error_msg = _is_time_correct(data.get('StudyTime'))
+        if not result:
+            return False, error_msg
+    # if not self._is_not_empty(self.referring_phycisian_field.get()):
+    #     return False
+    if data.get('PatientBirthDate'):
+        result, error_msg = _is_date_correct(data.get('PatientBirthDate'))
+        if not result:
+            return False, error_msg
+    # if not self._is_not_empty(self.patient_orientation_field.get()):
+    #     return False
+    return True, ''
+
+
+def _is_date_correct(date):
+    try:
+        time.strptime(date, '%d-%m-%Y')
+        return True, ''
+    except ValueError:
+        return False, 'Błąd! Data musi mieć format dd-mm-yyyy'
+
+
+def _is_time_correct(t):
+    try:
+        time.strptime(t, '%H:%M:%S')
+        return True, ''
+    except ValueError:
+        return False, 'Błąd! Godzina musi mieć format gg:mm:ss'
 
 
 def test():

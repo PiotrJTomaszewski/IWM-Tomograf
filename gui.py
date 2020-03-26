@@ -5,7 +5,6 @@ import PIL.ImageTk
 import datetime
 import time
 from tkinter import ttk
-from dicom_handler import dicom_date_dataset_to_display, dicom_time_dataset_to_display
 
 # TODO: Set default values
 
@@ -24,18 +23,20 @@ SPREAD_INCREMENT = 1
 IMAGE_WIDTH = 200
 IMAGE_HEIGHT = 200
 
-AS_IMG_TEXT = 'Jako obraz JPG'
-AS_DICOM_TEXT = 'W formacie DICOM'
+AS_IMG_TEXT = 'Zapisz obraz wyjściowy w formacie JPG'
+AS_DICOM_TEXT = 'Zapisz plik w formacie DICOM'
 
 
 class CTScannerGUI:
     def __init__(self, master, input_image_select_clbk, sim_options_confirm_clbk, radon_next_step_clbk,
-                 iradon_next_step_clbk, dicom_edit_clbk):
+                 iradon_next_step_clbk, dicom_edit_clbk, dicom_save_clbk):
         self.master = master
         master.title('Symulator tomografu')
         # Create widgets
-        self._setup_menu_bar(input_image_select_clbk)
-        self._setup_input_data_view(dicom_edit_clbk)
+        self._setup_menu_bar(input_image_select_clbk, dicom_save_clbk)
+        self._setup_input_data_view()
+        self.error_msg_var = tk.StringVar()
+        self._setup_dicom_ui(dicom_edit_clbk)
         self._setup_simulation_options(sim_options_confirm_clbk)
         self.show_steps_radon_var = tk.IntVar()
         self.enable_filtering_var = tk.IntVar()
@@ -43,29 +44,120 @@ class CTScannerGUI:
         self.show_steps_iradon_var = tk.IntVar()
         self._setup_iradon(iradon_next_step_clbk)
 
-    def _setup_menu_bar(self, input_image_select_clbk):
+    def _setup_menu_bar(self, input_image_select_clbk, dicom_save_clbk):
         self.menu_bar = tk.Menu(master=self.master, tearoff=0)
         self.menu_bar.add_command(label='Otwórz plik', command=input_image_select_clbk)
-        self.menu_bar_save_menu = tk.Menu(master=self.menu_bar)
-        self.menu_bar_save_menu.add_command(label=AS_IMG_TEXT, command=None, state='disabled')
-        self.menu_bar_save_menu.add_command(label=AS_DICOM_TEXT, command=None, state='disabled')
+        self.menu_bar.add_command(label=AS_IMG_TEXT, command=None, state='disabled')  # TODO: Bind saving as jpg
+        self.menu_bar.add_command(label=AS_DICOM_TEXT, command=dicom_save_clbk, state='disabled')
 
-        self.menu_bar.add_cascade(label='Zapisz uzyskany obraz', menu=self.menu_bar_save_menu)
         self.master.config(menu=self.menu_bar)
 
-    def _setup_input_data_view(self, dicom_edit_clbk):
+    def _setup_input_data_view(self):
         self.input_data_frame = tk.LabelFrame(master=self.master, text='Dane wejściowe')
         self.input_image = tk.Canvas(master=self.input_data_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
-        self.dicom_show_frame = tk.LabelFrame(master=self.input_data_frame, text='DICOM')
-        self.dicom_show_list = tk.Listbox(master=self.dicom_show_frame, width=50)
-        self.dicom_show_list_next_id = 1
-        self.dicom_edit_btn = tk.Button(master=self.dicom_show_frame, text='Edytuj', command=dicom_edit_clbk,
-                                        state='disabled')
+        # self.dicom_show_frame = tk.LabelFrame(master=self.input_data_frame, text='DICOM')
+        # self.dicom_show_list = tk.Listbox(master=self.dicom_show_frame, width=50)
+        # self.dicom_show_list_next_id = 1
+
         self.input_data_frame.grid(row=0, column=0, sticky=tk.N + tk.W, pady=0, ipadx=0)
         self.input_image.pack()
-        self.dicom_show_frame.pack()
-        self.dicom_show_list.pack()
-        self.dicom_edit_btn.pack()
+        # self.dicom_show_frame.pack()
+        # self.dicom_show_list.pack()
+        # self.dicom_edit_btn.pack()
+
+    def _setup_dicom_ui(self, dicom_edit_clbk):
+        self.dicom_edit_frame = tk.LabelFrame(master=self.input_data_frame, text='Edytuj DICOM')
+        # self.study_id_label = tk.Label(master=self.dicom_edit_frame, text='ID badania')
+        # self.study_id_field = tk.Entry(master=self.dicom_edit_frame)
+        # self.series_number_label = tk.Label(master=self.dicom_edit_frame, text='Numer seryjny')
+        # self.series_number_field = tk.Entry(master=self.dicom_edit_frame)
+        # self.accession_number_label = tk.Label(master=self.dicom_edit_frame, text='Numer katalogowy')
+        # self.accession_number_field = tk.Entry(master=self.dicom_edit_frame)
+        self.study_date_label = tk.Label(master=self.dicom_edit_frame, text='Data badania')
+        self.study_date_field = tk.Entry(master=self.dicom_edit_frame)
+        self.study_time_label = tk.Label(master=self.dicom_edit_frame, text='Godzina badania')
+        self.study_time_field = tk.Entry(master=self.dicom_edit_frame)
+        # self.referring_phycisian_label = tk.Label(master=self.dicom_edit_frame, text='Lekarz zlecający')
+        # self.referring_phycisian_field = tk.Entry(master=self.dicom_edit_frame)
+        self.patient_id_label = tk.Label(master=self.dicom_edit_frame, text='ID pacjenta')
+        self.patient_id_field = tk.Entry(master=self.dicom_edit_frame)
+        self.patient_name_label = tk.Label(master=self.dicom_edit_frame, text='Imię pacjenta')
+        self.patient_name_field = tk.Entry(master=self.dicom_edit_frame)
+        self.patient_surname_label = tk.Label(master=self.dicom_edit_frame, text='Nazwisko pacjenta')
+        self.patient_surname_field = tk.Entry(master=self.dicom_edit_frame)
+        self.patient_sex_label = tk.Label(master=self.dicom_edit_frame, text='Płeć pacjenta')
+        self.patient_sex_field = ttk.Combobox(master=self.dicom_edit_frame, values=('Nieznana', 'Kobieta', 'Mężczyzna'))
+        self.patient_sex_field.set('Nieznana')
+        self.patient_birthday_label = tk.Label(master=self.dicom_edit_frame, text='Data urodzenia pacjenta')
+        self.patient_birthday_field = tk.Entry(master=self.dicom_edit_frame)
+        # self.patient_orientation_label = tk.Label(master=self.dicom_edit_frame, text='Położenie pacjenta')
+        # self.patient_orientation_field = tk.Entry(master=self.dicom_edit_frame)
+        self.comment_label = tk.Label(master=self.dicom_edit_frame, text='Komentarz')
+        self.comment_field = tk.Entry(master=self.dicom_edit_frame)
+        self.dicom_confirm_btn = tk.Button(master=self.dicom_edit_frame, text='Zatwierdź',
+                                           command=dicom_edit_clbk, state='disabled')
+        self.error_msgbox = tk.Message(master=self.dicom_edit_frame, textvar=self.error_msg_var, width=200)
+
+        self.dicom_edit_frame.pack()
+        # self.study_id_label.grid(row=0, column=0, sticky=tk.W)
+        # self.study_id_field.grid(row=0, column=1)
+        # self.series_number_label.grid(row=1, column=0, sticky=tk.W)
+        # self.series_number_field.grid(row=1, column=1)
+        # self.accession_number_label.grid(row=2, column=0, sticky=tk.W)
+        # self.accession_number_field.grid(row=2, column=1)
+        self.study_date_label.grid(row=3, column=0, sticky=tk.W)
+        self.study_date_field.grid(row=3, column=1)
+        self.study_time_label.grid(row=4, column=0, sticky=tk.W)
+        self.study_time_field.grid(row=4, column=1)
+        # self.referring_phycisian_label.grid(row=5, column=0, sticky=tk.W)
+        # self.referring_phycisian_field.grid(row=5, column=1)
+        self.patient_id_label.grid(row=6, column=0, sticky=tk.W)
+        self.patient_id_field.grid(row=6, column=1)
+        self.patient_name_label.grid(row=7, column=0, sticky=tk.W)
+        self.patient_name_field.grid(row=7, column=1)
+        self.patient_surname_label.grid(row=8, column=0, sticky=tk.W)
+        self.patient_surname_field.grid(row=8, column=1)
+        self.patient_sex_label.grid(row=9, column=0, sticky=tk.W)
+        self.patient_sex_field.grid(row=9, column=1)
+        self.patient_birthday_label.grid(row=10, column=0, sticky=tk.W)
+        self.patient_birthday_field.grid(row=10, column=1)
+        # self.patient_orientation_label.grid(row=10, column=0, sticky=tk.W)
+        # self.patient_orientation_field.grid(row=10, column=1)
+        self.comment_label.grid(row=11, column=0, sticky=tk.W)
+        self.comment_field.grid(row=11, column=1)
+        self.error_msgbox.grid(row=12, column=0, sticky=tk.W)
+        self.dicom_confirm_btn.grid(row=13, column=0)
+
+    def dicom_load_current_values(self, data):
+        """Get values from the data set stored in self.dataset"""
+        self.study_date_field.delete(0, tk.END)
+        self.study_time_field.delete(0, tk.END)
+        self.patient_id_field.delete(0, tk.END)
+        self.patient_name_field.delete(0, tk.END)
+        self.patient_surname_field.delete(0, tk.END)
+        self.patient_sex_field.set('Nieznana')
+        self.patient_birthday_field.delete(0, tk.END)
+
+        self.study_date_field.insert(0, data.get('StudyDate'))
+        self.study_time_field.insert(0, data.get('StudyTime'))  # TODO: Add placeholders
+        self.patient_id_field.insert(0, data.get('PatientID'))
+        self.patient_name_field.insert(0, data.get('PatientGivenName'))
+        self.patient_surname_field.insert(0, data.get('PatientFamilyName'))
+        patient_sex = data.get('PatientSex')
+        if patient_sex != '':
+            self.patient_sex_field.set(patient_sex)
+        self.patient_birthday_field.insert(0, data.get('PatientBirthDate'))
+        print('TODO: Implement comments')  # TODO: Seriously, implement comments :)
+
+    def get_dicom_fields_content(self):
+        # TODO: Add comment support
+        return {'StudyDate': self.study_date_field.get(),
+                'StudyTime': self.study_time_field.get(),
+                'PatientID': self.patient_id_field.get(),
+                'PatientGivenName': self.patient_name_field.get(),
+                'PatientFamilyName': self.patient_surname_field.get(),
+                'PatientSex': self.patient_sex_field.get(),
+                'PatientBirthDate': self.patient_birthday_field.get()}
 
     def _setup_simulation_options(self, sim_options_confirm_clbk):
         self.settings_frame = tk.LabelFrame(master=self.input_data_frame, text='Ustawienia skanera')
@@ -121,7 +213,6 @@ class CTScannerGUI:
         self.radon_step_progress = ttk.Progressbar(master=self.radon_progress_frame, value=0, maximum=100)
         self.radon_norm_progress_label = tk.Label(master=self.radon_progress_frame, text='Postęp normalizacji')
         self.radon_norm_progress = ttk.Progressbar(master=self.radon_progress_frame, value=0, maximum=100)
-        # TODO: Add normalization progress
         self.simulation_step_image = tk.Canvas(master=self.radon_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
 
         self.radon_frame.grid(row=0, column=2)
@@ -209,82 +300,6 @@ class CTScannerGUI:
         detectors_spread = self.detectors_spread.get()
         return delta_alpha_step, number_of_detectors, detectors_spread
 
-    def dicom_show_display_dataset(self, dataset):  # TODO: Add comment support
-        try:
-            study_id = dataset.StudyID
-        except AttributeError:
-            study_id = 'Brak'
-        self._dicom_show_add_elem('ID badania', study_id)
-        try:
-            series_number = str(dataset.SeriesNumber)
-        except AttributeError:
-            series_number = 'Brak'
-        self._dicom_show_add_elem('Numer seryjny', series_number)
-        try:
-            accession_number = dataset.AccessionNumber
-        except AttributeError:
-            accession_number = 'Brak'
-        self._dicom_show_add_elem('Numer katalogowy', accession_number)
-        try:
-            study_date = dicom_date_dataset_to_display(dataset.StudyDate)
-        except AttributeError:
-            study_date = 'Brak'
-        self._dicom_show_add_elem('Data badania', study_date)
-        try:
-            study_time = dicom_time_dataset_to_display(dataset.StudyTime)
-        except AttributeError:
-            study_time = 'Brak'
-        self._dicom_show_add_elem('Godzina badania', study_time)
-        try:
-            referring_phycician = dataset.ReferringPhysicianName
-        except AttributeError:
-            referring_phycician = 'Brak'
-        self._dicom_show_add_elem('Lekarz zlecający', str(referring_phycician))
-        try:
-            patient_id = dataset.PatientID
-        except AttributeError:
-            patient_id = 'Brak'
-        self._dicom_show_add_elem('ID pacjenta', patient_id)
-        try:
-            patient_name = str(dataset.PatientName)
-        except AttributeError:
-            patient_name = 'Brak'
-        self._dicom_show_add_elem('Dane osobowe pacjenta', patient_name)
-        try:
-            patient_sex = dataset.PatientSex
-            if patient_sex == 'F':
-                patient_sex = 'Kobieta'
-            elif patient_sex == 'M':
-                patient_sex = 'Mężczyzna'
-        except AttributeError:
-            patient_sex = 'Brak'
-        self._dicom_show_add_elem('Płeć pacjenta', patient_sex)
-        try:
-            patient_birthday = dicom_date_dataset_to_display(dataset.PatientBirthDay)
-        except AttributeError:
-            patient_birthday = 'Brak'
-        self._dicom_show_add_elem('Data ur. pacjenta', patient_birthday)
-        try:
-            patient_orientation = dataset.PatientOrientation
-        except AttributeError:
-            patient_orientation = 'Brak'
-        self._dicom_show_add_elem('Położenie pacjenta', patient_orientation)
-        try:
-            comment = ''  # TODO: Find which attribute it is
-        except AttributeError:
-            comment = 'Brak'
-        self._dicom_show_add_elem('Komentarz', comment)
-        # Adjust list height to fit all fields
-        self.dicom_show_list.config(height=self.dicom_show_list_next_id - 1)
-
-    def _dicom_show_add_elem(self, name, value):
-        entry = ': '.join([name, value])
-        self.dicom_show_list.insert(self.dicom_show_list_next_id, entry)
-        self.dicom_show_list_next_id += 1
-
-    def show_dicom_edit_window(self):
-        pass
-
     def set_total_radon_progress(self, cur_val, max_val=None):
         self._set_progress(self.radon_total_progress, cur_val, max_val)
 
@@ -316,7 +331,7 @@ class CTScannerGUI:
         :param state: True to enable, False to disable
         """
         if name == 'dicom_edit':
-            btn = self.dicom_edit_btn
+            btn = self.dicom_confirm_btn
         elif name == 'options':
             btn = self.options_confirm
         elif name == 'radon':
@@ -331,13 +346,19 @@ class CTScannerGUI:
         else:
             btn['state'] = 'disable'
 
-    def toggle_save_menu(self, state):
+    def toggle_save_jpg_menu(self, state):
         if state:
-            self.menu_bar_save_menu.entryconfig(AS_IMG_TEXT, state='normal')
-            self.menu_bar_save_menu.entryconfig(AS_DICOM_TEXT, state='normal')
+            self.menu_bar.entryconfig(AS_IMG_TEXT, state='normal')
+            # self.menu_bar.entryconfig(AS_DICOM_TEXT, state='normal')
         else:
-            self.menu_bar_save_menu.entryconfig(AS_IMG_TEXT, state='disabled')
-            self.menu_bar_save_menu.entryconfig(AS_DICOM_TEXT, state='disabled')
+            self.menu_bar.entryconfig(AS_IMG_TEXT, state='disabled')
+            # self.menu_bar.entryconfig(AS_DICOM_TEXT, state='disabled')
+
+    def toggle_save_dicom_menu(self, state):
+        if state:
+            self.menu_bar.entryconfig(AS_DICOM_TEXT, state='normal')
+        else:
+            self.menu_bar.entryconfig(AS_DICOM_TEXT, state='disabled')
 
 
 def test():

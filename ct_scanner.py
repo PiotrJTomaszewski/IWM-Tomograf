@@ -26,6 +26,8 @@ class CTScanner:
     current_iradon_iteration = 0
     iradon_result = None
     iradon_scaling_factor = 0
+    rec_img_dirty = True  # True if the reconstructed img needs to be recalculated (used when saving the image)
+    rec_img = None
 
     def __init__(self, radon_step_progress_clbk, radon_total_progress_clbk, iradon_step_progress_clbk,
                  iradon_total_progress_clbk, normalization_radon_progress_clbk, normalization_iradon_progress_clbk):
@@ -114,11 +116,13 @@ class CTScanner:
                 for i in range(self.em_det_no)]
 
     def init_iradon(self):
+        self.rec_img_dirty = True
         self.current_iradon_iteration = 0
         # self.iradon_result = np.zeros((self.image_width, self.image_width), dtype=np.int)
         self.iradon_result = np.zeros((self.input_image_width, self.input_image_width), dtype=np.int)
 
     def iradon_step(self):
+        # TODO: I don't like this formula. It is technically correct but doesn't interpolate the lines in any way.
         for s, line in enumerate(self.scan_lines[self.current_iradon_iteration]):
             for point in line:
                 self.iradon_result[point] += self.radon_result[s, self.current_iradon_iteration]
@@ -128,7 +132,7 @@ class CTScanner:
         self.current_iradon_iteration += 1
         if self.current_iradon_iteration < self.radon_result.shape[1]:
             return True
-        else:
+        else:  # End of processing
             return False
 
     def iradon_full(self):
@@ -166,14 +170,16 @@ class CTScanner:
         return singoram_image
 
     def visualize_reconstructed_img(self):
-        rec_img = np.zeros((self.iradon_result.shape[0], self.iradon_result.shape[1]), dtype=np.uint8)
-        max_val = np.max(self.iradon_result)
-        min_val = np.min(self.iradon_result)
-        for i in range(len(self.iradon_result)):
-            self.normalization_iradon_progress_clbk(i, len(self.iradon_result))
-            for j in range(len(self.iradon_result[i])):
-                rec_img[i, j] = normalize(self.iradon_result[i, j], min_val, max_val)
-        return rec_img
+        if self.rec_img_dirty:
+            self.rec_img = np.zeros((self.iradon_result.shape[0], self.iradon_result.shape[1]), dtype=np.uint8)
+            max_val = np.max(self.iradon_result)
+            min_val = np.min(self.iradon_result)
+            for i in range(len(self.iradon_result)):
+                self.normalization_iradon_progress_clbk(i, len(self.iradon_result))
+                for j in range(len(self.iradon_result[i])):
+                    self.rec_img[i, j] = normalize(self.iradon_result[i, j], min_val, max_val)
+            self.rec_img_dirty = False
+        return self.rec_img
 
     def restart_scanner(self):
         self.init_radon()

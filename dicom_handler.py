@@ -65,6 +65,12 @@ def dicom_save(file_name, dataset, image):
     This function checks whether the dataset contains a pixelarray field (an input image).
     If it doesn't the image parameter is used as one.
     """
+    if image.dtype != np.uint8:
+        img_max = np.max(image)
+        img_min = np.min(image)
+        image = ((image - img_min) / (img_max - img_min) * 255)
+        image = image.astype(np.uint8)
+
     dataset.PixelData = image.tobytes()
     dataset.Rows, dataset.Columns = image.shape
     dataset.BitsStored = 8

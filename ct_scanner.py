@@ -122,6 +122,7 @@ class CTScanner:
         self.iradon_result = np.zeros((self.input_image_width, self.input_image_width), dtype=np.int)
 
     def iradon_step(self):
+        self.rec_img_dirty = True
         # TODO: I don't like this formula. It is technically correct but doesn't interpolate the lines in any way.
         for s, line in enumerate(self.scan_lines[self.current_iradon_iteration]):
             for point in line:
@@ -201,15 +202,6 @@ def _visualize_scan_lines(image, scan_lines):
     for line in scan_lines:
         for a, b in line:
             image[a][b] = 255
-
-
-def filter(line):
-    line_len = len(line)
-    window = np.linspace(start=1, stop=0, num=line_len // 2)
-    for i in range(line_len // 2):
-        line[i] *= window[i]
-        line[line_len - i - 1] *= window[i]
-    return line
 
 
 def normalize(value, min_val, max_val, normalize_to=255):

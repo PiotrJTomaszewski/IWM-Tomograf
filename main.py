@@ -16,9 +16,10 @@ def open_image(img_path):
 def select_file(path):
     f_path = filedialog.askopenfilename(initialdir=path, title='Proszę wybrać plik wejściowy',
                                         filetypes=(
-                                            ('Supported formats', ('*dcm', '*jpg', '*jpeg', '*DCM', '*JPG', '*JPEG')),
-                                            ('JPEG files', ('*jpg', '*jpeg')),
-                                            ('DICOM files', ('*dcm', '*DCM')),
+                                            ('Supported formats',
+                                             ('*.dcm', '*.jpg', '*.jpeg', '*.DCM', '*.JPG', '*.JPEG')),
+                                            ('JPEG files', ('*.jpg', '*.jpeg')),
+                                            ('DICOM files', ('*.dcm', '*.DCM')),
                                             ('All files', '*')))
     is_dicom_file = False
     if f_path:
@@ -53,7 +54,9 @@ class Main:
                                 radon_next_step_clbk=self.radon_next_step,
                                 iradon_next_step_clbk=self.iradon_next_step,
                                 dicom_edit_clbk=self.dicom_edit_clbk,
-                                dicom_save_clbk=self.dicom_show_save_dialog)
+                                dicom_save_in_clbk=self.dicom_save_in,
+                                dicom_save_out_clbk=self.dicom_save_out,
+                                jpg_save_clbk=self.jpg_save)
         self.ct_scanner = CTScanner(self.gui.set_step_radon_progress, self.gui.set_total_radon_progress,
                                     self.gui.set_step_iradon_progress, self.gui.set_total_iradon_progress,
                                     self.gui.set_normalization_radon_progress,
@@ -95,7 +98,8 @@ class Main:
             self.gui.toggle_button('radon', False)
             self.gui.toggle_button('iradon', False)
             self.gui.toggle_save_jpg_menu(False)
-            self.gui.toggle_save_dicom_menu(False)
+            self.gui.toggle_save_dicom_out_menu(False)
+            self.gui.toggle_save_dicom_in_menu(True)
 
     def simulation_options_changed(self):
         delta_alpha_step, number_of_detectors, detectors_spread = self.gui.get_simulations_options()
@@ -115,7 +119,7 @@ class Main:
         self.gui.toggle_button('radon', True)
         self.gui.toggle_button('iradon', False)
         self.gui.toggle_save_jpg_menu(False)
-        self.gui.toggle_save_dicom_menu(False)
+        self.gui.toggle_save_dicom_out_menu(False)
 
     def radon_next_step(self):
         if not self.radon_currently_running:  # If I spam the button weird things happen, so a quick workaround
@@ -136,7 +140,7 @@ class Main:
                 self.gui.toggle_button('radon', False)
                 self.gui.toggle_button('iradon', True)
                 self.gui.toggle_save_jpg_menu(False)
-                self.gui.toggle_save_dicom_menu(False)
+                self.gui.toggle_save_dicom_out_menu(False)
             self.radon_currently_running = False
 
     def iradon_next_step(self):
@@ -160,7 +164,7 @@ class Main:
                 self.gui.error_label.config(text='Błąd średniokwadratowy: ' + str(np.round(mse, 3)))
                 self.gui.toggle_button('iradon', False)
                 self.gui.toggle_save_jpg_menu(True)
-                self.gui.toggle_save_dicom_menu(True)
+                self.gui.toggle_save_dicom_out_menu(True)
             self.iradon_currently_running = False
 
     def dicom_edit_clbk(self):
@@ -172,11 +176,23 @@ class Main:
         else:
             self.gui.error_msg_var.set(error_msg)
 
-    def dicom_show_save_dialog(self):
-        f_path = filedialog.asksaveasfilename(initialdir='.', title='Zapisz wynik w formacie DICOM',
-                                              filetypes=[['DICOM files', ('*dcm', '*DCM')]])
+    def dicom_show_save_dialog(self, image):
+        f_path = filedialog.asksaveasfilename(initialdir='.', title='Zapisz plik w formacie DICOM',
+                                              filetypes=[['DICOM files', ('*.dcm', '*.DCM')]])
         if f_path and f_path != '':
-            dicom_handler.dicom_save(f_path, self.dicom_dataset, self.ct_scanner.visualize_reconstructed_img())
+            dicom_handler.dicom_save(f_path, self.dicom_dataset, image)
+
+    def dicom_save_in(self):
+        self.dicom_show_save_dialog(self.input_image)
+
+    def dicom_save_out(self):
+        self.dicom_show_save_dialog(self.ct_scanner.visualize_reconstructed_img())
+
+    def jpg_save(self):
+        f_path = filedialog.asksaveasfilename(initialdir='.', title='Zapisz plik w formacjie JPG',
+                                              filetypes=[['JPG files', ('*.jpg', '*.jpeg', '*.JPG', '*.JPEG')]])
+        if f_path and f_path != '':
+            io.imsave(f_path, self.ct_scanner.visualize_reconstructed_img())
 
 
 def main():

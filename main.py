@@ -176,6 +176,7 @@ class Main:
         else:
             self.gui.error_msg_var.set(error_msg)
 
+    # TODO: Auto add extension
     def dicom_show_save_dialog(self, image):
         f_path = filedialog.asksaveasfilename(initialdir='.', title='Zapisz plik w formacie DICOM',
                                               filetypes=[['DICOM files', ('*.dcm', '*.DCM')]])

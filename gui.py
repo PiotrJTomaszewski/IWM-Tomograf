@@ -8,9 +8,9 @@ from tkinter import ttk
 
 # TODO: Set default values
 
-DELTA_ALPHA_STEP_MIN = 0.1
-DELTA_ALPHA_STEP_MAX = 30
-DELTA_ALPHA_STEP_INCREMENT = 0.1
+DELTA_ALPHA_STEP_MIN = 1
+DELTA_ALPHA_STEP_MAX = 50
+DELTA_ALPHA_STEP_INCREMENT = 1
 
 NUMBER_OF_DETECTORS_MIN = 10
 NUMBER_OF_DETECTORS_MAX = 1000
@@ -133,6 +133,7 @@ class CTScannerGUI:
         self.patient_surname_field.delete(0, tk.END)
         self.patient_sex_field.set('Nieznana')
         self.patient_birthday_field.delete(0, tk.END)
+        self.comment_field.delete(0, tk.END)
 
         self.study_date_field.insert(0, data.get('StudyDate'))
         self.study_time_field.insert(0, data.get('StudyTime'))  # TODO: Add placeholders
@@ -143,7 +144,7 @@ class CTScannerGUI:
         if patient_sex != '':
             self.patient_sex_field.set(patient_sex)
         self.patient_birthday_field.insert(0, data.get('PatientBirthDate'))
-        print('TODO: Implement comments')  # TODO: Seriously, implement comments :)
+        self.comment_field.insert(0, data.get('ImageComments'))
 
     def get_dicom_fields_content(self):
         # TODO: Add comment support
@@ -153,7 +154,8 @@ class CTScannerGUI:
                 'PatientGivenName': self.patient_name_field.get(),
                 'PatientFamilyName': self.patient_surname_field.get(),
                 'PatientSex': self.patient_sex_field.get(),
-                'PatientBirthDate': self.patient_birthday_field.get()}
+                'PatientBirthDate': self.patient_birthday_field.get(),
+                'ImageComments': self.comment_field.get()}
 
     def _setup_simulation_options(self, sim_options_confirm_clbk):
         self.settings_frame = tk.LabelFrame(master=self.input_data_frame, text='Ustawienia skanera')

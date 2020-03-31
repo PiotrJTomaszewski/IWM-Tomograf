@@ -101,52 +101,50 @@ def dicom_read_dataset(dataset):
     #     self.accession_number_field.insert(0, str(self.dataset.AccessionNumber))
     # except AttributeError:
     #     pass
-    try:
-        data['StudyDate'] = dicom_date_dataset_to_display(dataset.StudyDate)
-    except AttributeError:
+    if dataset.get('StudyDate'):
+        data['StudyDate'] = dicom_date_dataset_to_display(dataset.get('StudyDate'))
+    else:
         data['StudyDate'] = ''
-    try:
-        data['StudyTime'] = dicom_time_dataset_to_display(dataset.StudyTime)
-    except AttributeError:
+    if dataset.get('StudyTime'):
+        data['StudyTime'] = dicom_time_dataset_to_display(dataset.get('StudyTime'))
+    else:
         data['StudyTime'] = ''
     # try:
     #     self.referring_phycisian_field.insert(0, str(self.dataset.ReferringPhysicianName))
     # except AttributeError:
     #     pass
-    try:
-        data['PatientID'] = str(dataset.PatientID)
-    except AttributeError:
-        data['PatientID'] = ''
-    try:
-        patient_name = dataset.PatientName
-        data['PatientGivenName'] = patient_name.given_name
-        data['PatientFamilyName'] = patient_name.family_name
-    except AttributeError:
-        pass
-    if not data.get('PatientGivenName'):
+    data['PatientID'] = str(dataset.get('PatientID') or '')
+    if dataset.get('PatientName'):
+        patient_name = dataset.get('PatientName')
+        try:
+            data['PatientGivenName'] = patient_name.given_name
+        except AttributeError:
+            data['PatientGivenName'] = ''
+        try:
+            data['PatientFamilyName'] = patient_name.family_name
+        except AttributeError:
+            data['PatientFamilyName'] = ''
+    else:
         data['PatientGivenName'] = ''
-    if not data.get('PatientFamilyName'):
         data['PatientFamilyName'] = ''
-    try:
-        sex = dataset.PatientSex
+    sex = dataset.get('PatientSex')
+    if sex:
         if sex == 'F':
             data['PatientSex'] = 'Kobieta'
         elif sex == 'M':
             data['PatientSex'] = 'Mężczyzna'
-    except AttributeError:
-        data['PatientSex'] = ''
-    try:
-        data['PatientBirthDate'] = dicom_date_dataset_to_display(dataset.PatientBirthDate)
-    except AttributeError:
+    else:
+        data['PatientSex'] = 'Nieznana'
+    bday = dataset.get('PatientBirthDate')
+    if bday:
+        data['PatientBirthDate'] = dicom_date_dataset_to_display(bday)
+    else:
         data['PatientBirthDate'] = ''
     # try:
     #     self.patient_orientation_field.insert(0, str(self.dataset.PatientOrientation))
     # except AttributeError:
     #     pass
-    try:
-        print('TODO: Implement comments')  # TODO: Seriously, implement comments :)
-    except AttributeError:
-        pass
+    data['ImageComments'] = dataset.get('ImageComments') or ''
     return data
 
 
@@ -175,7 +173,8 @@ def dicom_store_data(data, dataset):
     if data.get('PatientBirthDate'):
         dataset.PatientBirthDate = dicom_date_display_to_dataset(data.get('PatientBirthDate'))
     # self.dataset.PatientOrientation = self.patient_orientation_field.get()
-    # TODO: Add comment support
+    if data.get('ImageComments'):
+        dataset.ImageComments = data.get('ImageComments')
     return dataset
 
 

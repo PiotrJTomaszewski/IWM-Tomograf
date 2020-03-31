@@ -8,14 +8,17 @@ from tkinter import ttk
 
 # TODO: Set default values
 
+DELTA_ALPHA_STEP_DEFAULT = 10
 DELTA_ALPHA_STEP_MIN = 1
 DELTA_ALPHA_STEP_MAX = 50
 DELTA_ALPHA_STEP_INCREMENT = 1
 
+NUMBER_OF_DETECTORS_DEFAULT = 400
 NUMBER_OF_DETECTORS_MIN = 10
-NUMBER_OF_DETECTORS_MAX = 1000
-NUMBER_OF_DETECTORS_INCREMENT = 1
+NUMBER_OF_DETECTORS_MAX = 2000
+NUMBER_OF_DETECTORS_INCREMENT = 10
 
+SPREAD_DEFAULT = 100
 SPREAD_MIN = 10
 SPREAD_MAX = 180
 SPREAD_INCREMENT = 1
@@ -147,7 +150,6 @@ class CTScannerGUI:
         self.comment_field.insert(0, data.get('ImageComments'))
 
     def get_dicom_fields_content(self):
-        # TODO: Add comment support
         return {'StudyDate': self.study_date_field.get(),
                 'StudyTime': self.study_time_field.get(),
                 'PatientID': self.patient_id_field.get(),
@@ -164,16 +166,19 @@ class CTScannerGUI:
         self.delta_alpha_step = tk.Scale(master=self.settings_frame, from_=DELTA_ALPHA_STEP_MIN,
                                          to=DELTA_ALPHA_STEP_MAX, resolution=DELTA_ALPHA_STEP_INCREMENT,
                                          orient=tk.HORIZONTAL)
+        self.delta_alpha_step.set(DELTA_ALPHA_STEP_DEFAULT)
         # Number of detectors (n)
         self.number_of_detectors_label = tk.Label(master=self.settings_frame, text='Liczba detektorów (n)')
         self.number_of_detectors = tk.Scale(master=self.settings_frame, from_=NUMBER_OF_DETECTORS_MIN,
                                             to=NUMBER_OF_DETECTORS_MAX, resolution=NUMBER_OF_DETECTORS_INCREMENT,
                                             orient=tk.HORIZONTAL)
+        self.number_of_detectors.set(NUMBER_OF_DETECTORS_DEFAULT)
         # Emitter / detector spread (l)
         self.detectors_spread_label = tk.Label(master=self.settings_frame,
                                                text='Rozwartość / rozpiętość układu emiter/detektor (l)')
         self.detectors_spread = tk.Scale(master=self.settings_frame, from_=SPREAD_MIN, to=SPREAD_MAX,
                                          resolution=SPREAD_INCREMENT, orient=tk.HORIZONTAL)
+        self.detectors_spread.set(SPREAD_DEFAULT)
         self.options_confirm = tk.Button(master=self.settings_frame, text='Zatwierdź',
                                          command=sim_options_confirm_clbk, state='disabled')
 
@@ -240,8 +245,8 @@ class CTScannerGUI:
         self.show_steps_iradon = tk.Checkbutton(master=self.iradon_frame, text='Pokazuj kroki pośrednie',
                                                 variable=self.show_steps_iradon_var,
                                                 command=self._iradon_show_steps_clbk)
-        self.enable_filtering = tk.Checkbutton(master=self.iradon_frame, text='Włącz filtr',
-                                               variable=self.enable_filtering_var)
+        # self.enable_filtering = tk.Checkbutton(master=self.iradon_frame, text='Włącz filtr',
+        #                                        variable=self.enable_filtering_var)
         self.next_reco_step = tk.Button(master=self.iradon_frame, text='Wykonaj', command=iradon_next_step_clbk,
                                         state='disabled')
         self.iradon_progress_frame = tk.Frame(master=self.iradon_frame)
@@ -255,7 +260,7 @@ class CTScannerGUI:
         self.error_label = tk.Label(master=self.iradon_frame)
         self.iradon_frame.grid(row=0, column=3)
         self.show_steps_iradon.pack()
-        self.enable_filtering.pack()
+        # self.enable_filtering.pack()
         self.next_reco_step.pack()
         self.iradon_progress_frame.pack()
         self.iradon_total_progress_label.grid(row=0, column=0, sticky=tk.W)
@@ -361,16 +366,7 @@ class CTScannerGUI:
 
 
 def test():
-    root = tk.Tk()
-    gui = CTScannerGUI(root, None, None, None, None)
-
-    from dicom_handler import dicom_load, dicom_list_files
-    dcm_files = dicom_list_files('/home/piotr/studia_sem6/IWM/Tomograf/dicom_files')
-    ds = dicom_load(dcm_files['vhf.1501.dcm'])
-    gui.dicom_show_display_dataset(ds)
-
-    root.mainloop()
-    gui.show_dicom_edit_window()
+    pass
 
 
 if __name__ == '__main__':

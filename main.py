@@ -160,8 +160,8 @@ class Main:
             self.gui.display_image(reconstructed_img, 'reco_img')
             self.gui.toggle_button('iradon', True)
             if self.ct_scanner.is_iradon_finished():
-                mse = calculate_mse(self.ct_scanner.input_image, reconstructed_img)  # TODO: Add a button for mse
-                self.gui.error_label.config(text='Błąd średniokwadratowy: ' + str(np.round(mse, 3)))
+                # mse = calculate_mse(self.ct_scanner.input_image, reconstructed_img)  # TODO: Add a button for mse
+                # self.gui.error_label.config(text='Błąd średniokwadratowy: ' + str(np.round(mse, 3)))
                 self.gui.toggle_button('iradon', False)
                 self.gui.toggle_save_jpg_menu(True)
                 self.gui.toggle_save_dicom_out_menu(True)

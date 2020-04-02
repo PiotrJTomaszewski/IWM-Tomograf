@@ -100,7 +100,7 @@ class CTScannerGUI:
         self.patient_birthday_field.grid(row=6, column=1)
         self.comment_label.grid(row=7, column=0, sticky=tk.W)
         self.comment_field.grid(row=7, column=1)
-        self.error_msgbox.grid(row=8, column=0, sticky=tk.W)
+        self.error_msgbox.grid(row=8, column=0, sticky=tk.W, columnspan=2)
         self.dicom_confirm_btn.grid(row=9, column=0)
 
     def dicom_load_current_values(self, data):

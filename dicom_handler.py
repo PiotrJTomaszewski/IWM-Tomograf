@@ -24,16 +24,6 @@ def dicom_time_display_to_dataset(t):
     return time.strftime('%H%M%S.0000', time.strptime(t, '%H:%M:%S'))
 
 
-def dicom_list_files(path):
-    """Used only in testing"""
-    dcm_files = {}
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            if file[-4:].lower() == '.dcm':
-                dcm_files[file] = os.path.join(root, file)
-    return dcm_files
-
-
 def dicom_load(path):
     ds = pydicom.dcmread(path)
     # print(ds)
@@ -151,15 +141,15 @@ def dicom_store_data(data, dataset):
 
 def dicom_check_data(data):
     """Checks if data is correct"""
-    if data.get('StudyDate'):
+    if data.get('StudyDate') and data.get('StudyDate') != '':
         result, error_msg = _is_date_correct(data.get('StudyDate'))
         if not result:
             return False, error_msg
-    if data.get('StudyTime'):
+    if data.get('StudyTime') and data.get('StudyTime') != '':
         result, error_msg = _is_time_correct(data.get('StudyTime'))
         if not result:
             return False, error_msg
-    if data.get('PatientBirthDate'):
+    if data.get('PatientBirthDate') and data.get('PatientBirthDate') != '':
         result, error_msg = _is_date_correct(data.get('PatientBirthDate'))
         if not result:
             return False, error_msg
@@ -180,14 +170,3 @@ def _is_time_correct(t):
         return True, ''
     except ValueError:
         return False, 'Błąd! Godzina musi mieć format gg:mm:ss'
-
-
-def test():
-    dcm_files = dicom_list_files('/home/piotr/studia_sem6/IWM/Tomograf/dicom_files')
-    print(dcm_files)
-    dicom_load(dcm_files['vhf.1501.dcm'])
-    dicom_load(dcm_files['vhf.1505.dcm'])
-
-
-if __name__ == '__main__':
-    test()

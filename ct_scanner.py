@@ -1,4 +1,4 @@
-from skimage import io, draw
+from skimage import draw
 import numpy as np
 import math
 from bresenham import generate_line
@@ -123,7 +123,6 @@ class CTScanner:
     def init_iradon(self):
         self.rec_img_dirty = True
         self.current_iradon_iteration = 0
-        # self.iradon_result = np.zeros((self.image_width, self.image_width), dtype=np.int)
         self.iradon_result = np.zeros((self.input_image_width, self.input_image_width), dtype=np.int)
 
     def iradon_step(self):

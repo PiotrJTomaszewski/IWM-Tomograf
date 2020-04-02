@@ -1,4 +1,3 @@
-import os
 from skimage import io
 from gui import CTScannerGUI
 from ct_scanner import CTScanner
@@ -6,7 +5,6 @@ import tkinter as tk
 import dicom_handler
 from tkinter import filedialog
 import numpy as np
-from dicom_edit_dialog import DicomEditDialog
 
 
 def open_image(img_path):
@@ -68,18 +66,14 @@ class Main:
         if file_path:
             if self.is_input_file_dicom:
                 self.dicom_dataset, self.input_image = dicom_handler.dicom_load(file_path)
-                # self.gui.dicom_show_frame.pack()
             else:
                 self.input_image = open_image(file_path)
                 self.dicom_dataset = dicom_handler.dicom_create_new_dataset()
-                # self.gui.dicom_show_frame.pack_forget()
 
             self.gui.display_image(self.input_image, 'input')
             self.ct_scanner.set_input_image(self.input_image)
             # "Restart" the app
             self.ct_scanner.restart_scanner()
-            # self.gui.dicom_show_list.delete(0, self.gui.dicom_show_list_next_id)
-            # self.gui.dicom_show_list_next_id = 1
             self.gui.dicom_load_current_values(dicom_handler.dicom_read_dataset(self.dicom_dataset))
 
             self.gui.display_image(np.zeros((100, 100), dtype=np.uint8), 'simulation_step')
@@ -160,8 +154,6 @@ class Main:
             self.gui.display_image(reconstructed_img, 'reco_img')
             self.gui.toggle_button('iradon', True)
             if self.ct_scanner.is_iradon_finished():
-                # mse = calculate_mse(self.ct_scanner.input_image, reconstructed_img)  # TODO: Add a button for mse
-                # self.gui.error_label.config(text='Błąd średniokwadratowy: ' + str(np.round(mse, 3)))
                 self.gui.toggle_button('iradon', False)
                 self.gui.toggle_save_jpg_menu(True)
                 self.gui.toggle_save_dicom_out_menu(True)
@@ -175,8 +167,8 @@ class Main:
             self.gui.error_msg_var.set('Pomyślnie zaktualizowano dane')
         else:
             self.gui.error_msg_var.set(error_msg)
+        self.tk_root.after(3000, lambda: self.gui.error_msg_var.set(''))
 
-    # TODO: Auto add extension
     def dicom_show_save_dialog(self, image):
         f_path = filedialog.asksaveasfilename(initialdir='.', title='Zapisz plik w formacie DICOM',
                                               filetypes=[['DICOM files', ('*.dcm', '*.DCM')]])

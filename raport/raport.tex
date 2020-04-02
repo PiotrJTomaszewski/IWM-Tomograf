@@ -185,7 +185,7 @@ def dicom_load(path):
         image = 255 * (image - img_min) / (img_max - img_min)
     return ds, image.astype(np.uint8)
 \end{lstlisting}
-Aby ułatwić dalszą pracę i zwiększyć czytelność danych pozyskanycg z pliku DICOM, interesujące nas pola zostają odpowiednio sformatowane i umieszczone w słowniku \texttt{data}. \\
+Aby ułatwić dalszą pracę i zwiększyć czytelność danych pozyskanych z pliku DICOM, interesujące nas pola zostają odpowiednio sformatowane i umieszczone w słowniku \texttt{data}. \\
 Zbiór danych \texttt{dataset} jest obiektem dostarczanym przez bibiliotekę \textit{pydicom}, który przechowuje w swojej strukturze poszczególne pola zdefiniowane w standardzie DICOM.
 \begin{lstlisting}[language=Python, caption=Odczyt interesujących wartości ze zbioru danych DICOM, texcl=true]
 def dicom_read_dataset(dataset):

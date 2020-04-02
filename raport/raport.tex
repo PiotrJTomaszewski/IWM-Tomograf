@@ -5,14 +5,8 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{gensymb}
-%\usepackage{graphicx}
-%\usepackage{array}
-%\usepackage{siunitx}
-%\usepackage{booktabs}
-%\usepackage{tikz}
-%\usepackage{amsmath}
-%\usepackage{caption}
-%\usepackage{pgfplots}
+\usepackage{graphicx}
+\usepackage{float}
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
@@ -82,7 +76,7 @@ def radon_transform_step(self):
     self.current_alpha += self.delta_alpha
     self.current_radon_iteration += 1
 \end{lstlisting}
-
+\pagebreak
 \begin{lstlisting}[language=Python, caption=Wyznaczanie położenia emiterów i detektorów, texcl=true]
 def _calculate_emitters_detectors_position(self):
     emitters = []
@@ -146,7 +140,7 @@ def _calculate_emitters_detectors_position(self):
             points = _bresenham(x1, y1, x2, y2)
         return points
     \end{lstlisting}
-
+\pagebreak
 \subsection{Ustalanie jasności poszczególnych punktów obrazu wynikowego\\ oraz jego przetwarzanie końcowe}
 Odtwarzanie obrazu wygląda bardzo podobnie do generowania sinogramu. Jednak, zamiast wyznaczać całkę po kolejnych liniach skanujących, dodajemy jej wartość do każdego piksela obrazu wynikowego, który do tej linii należy.
 \begin{lstlisting}[language=Python, caption=Krok odtwarzania obrazu, texcl=true]
@@ -265,6 +259,7 @@ def dicom_store_data(data, dataset):
         dataset.ImageComments = data.get('ImageComments')
     return dataset
 \end{lstlisting}
+\pagebreak
 Użytkownik posiada wybór, czy umieścić w pliku DICOM obraz wyjściowy, czy też wejściowy. Ta druga opcja może być przydatna, gdy ma on zamiar jedynie uzupełnić dane w już istniejącym pliku.
 \begin{lstlisting}[language=Python, caption=Zapis pliku DICOM, texcl=true]
 def dicom_save(file_name, dataset, image):
@@ -274,6 +269,7 @@ def dicom_save(file_name, dataset, image):
         img_min = np.min(image)
         image = ((image - img_min) / (img_max - img_min) * 255)
         image = image.astype(np.uint8)
+    dataset.SpecificCharacterSet = 'utf-8'
     # Konwersja obrazu i ustawienie jego parametrów
     dataset.PixelData = image.tobytes()
     dataset.Rows, dataset.Columns = image.shape
@@ -285,5 +281,23 @@ def dicom_save(file_name, dataset, image):
     dataset.PixelRepresentation = 0
     dataset.save_as(file_name, write_like_original=False)
     \end{lstlisting}
-
+\section{Wygląd aplikacji}
+\begin{figure}[H]
+\center{\includegraphics[width=0.8\linewidth]{pic/app.png}}
+\caption{Ekran aplikacji}
+\end{figure}
+\begin{figure}[H]
+\center{\includegraphics[width=0.8\linewidth]{pic/result.png}}
+\caption{Przykład działania}
+\end{figure}
+\section{Sprawdzenie poprawności pliku DICOM}
+Poprawność tworzonych plików DICOM weryfikowana była za pomocą \\ \texttt{https://www.ofoct.com/viewer/dicom-viewer-online.html}
+\begin{figure}[H]
+    \center{\includegraphics[width=0.5\linewidth]{pic/check_img.png}}
+    \caption{Weryfikacja poprawności obrazu}
+\end{figure}
+\begin{figure}[H]
+    \center{\includegraphics[width=0.8\linewidth]{pic/check_tags.png}}
+    \caption{Weryfikacja poprawności tagów}
+\end{figure}
 \end{document}

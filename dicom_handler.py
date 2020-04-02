@@ -1,4 +1,3 @@
-import os
 import tempfile
 import time
 
@@ -26,7 +25,6 @@ def dicom_time_display_to_dataset(t):
 
 def dicom_load(path):
     ds = pydicom.dcmread(path)
-    # print(ds)
     image = ds.pixel_array
     # Convert the image data type to uint8
     if image.dtype != np.uint8:
@@ -61,6 +59,7 @@ def dicom_save(file_name, dataset, image):
         image = ((image - img_min) / (img_max - img_min) * 255)
         image = image.astype(np.uint8)
 
+    dataset.SpecificCharacterSet = 'utf-8'
     dataset.PixelData = image.tobytes()
     dataset.Rows, dataset.Columns = image.shape
     dataset.BitsStored = 8

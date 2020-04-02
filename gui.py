@@ -2,11 +2,7 @@ import tkinter as tk
 import numpy as np
 import PIL.Image
 import PIL.ImageTk
-import datetime
-import time
 from tkinter import ttk
-
-# TODO: Set default values
 
 DELTA_ALPHA_STEP_DEFAULT = 10
 DELTA_ALPHA_STEP_MIN = 1
@@ -66,18 +62,10 @@ class CTScannerGUI:
 
     def _setup_dicom_ui(self, dicom_edit_clbk):
         self.dicom_edit_frame = tk.LabelFrame(master=self.input_data_frame, text='Edytuj DICOM')
-        # self.study_id_label = tk.Label(master=self.dicom_edit_frame, text='ID badania')
-        # self.study_id_field = tk.Entry(master=self.dicom_edit_frame)
-        # self.series_number_label = tk.Label(master=self.dicom_edit_frame, text='Numer seryjny')
-        # self.series_number_field = tk.Entry(master=self.dicom_edit_frame)
-        # self.accession_number_label = tk.Label(master=self.dicom_edit_frame, text='Numer katalogowy')
-        # self.accession_number_field = tk.Entry(master=self.dicom_edit_frame)
         self.study_date_label = tk.Label(master=self.dicom_edit_frame, text='Data badania')
         self.study_date_field = tk.Entry(master=self.dicom_edit_frame)
         self.study_time_label = tk.Label(master=self.dicom_edit_frame, text='Godzina badania')
         self.study_time_field = tk.Entry(master=self.dicom_edit_frame)
-        # self.referring_phycisian_label = tk.Label(master=self.dicom_edit_frame, text='Lekarz zlecający')
-        # self.referring_phycisian_field = tk.Entry(master=self.dicom_edit_frame)
         self.patient_id_label = tk.Label(master=self.dicom_edit_frame, text='ID pacjenta')
         self.patient_id_field = tk.Entry(master=self.dicom_edit_frame)
         self.patient_name_label = tk.Label(master=self.dicom_edit_frame, text='Imię pacjenta')
@@ -89,8 +77,6 @@ class CTScannerGUI:
         self.patient_sex_field.set('Nieznana')
         self.patient_birthday_label = tk.Label(master=self.dicom_edit_frame, text='Data urodzenia pacjenta')
         self.patient_birthday_field = tk.Entry(master=self.dicom_edit_frame)
-        # self.patient_orientation_label = tk.Label(master=self.dicom_edit_frame, text='Położenie pacjenta')
-        # self.patient_orientation_field = tk.Entry(master=self.dicom_edit_frame)
         self.comment_label = tk.Label(master=self.dicom_edit_frame, text='Komentarz')
         self.comment_field = tk.Entry(master=self.dicom_edit_frame)
         self.dicom_confirm_btn = tk.Button(master=self.dicom_edit_frame, text='Zatwierdź',
@@ -98,34 +84,24 @@ class CTScannerGUI:
         self.error_msgbox = tk.Message(master=self.dicom_edit_frame, textvar=self.error_msg_var, width=200)
 
         self.dicom_edit_frame.pack()
-        # self.study_id_label.grid(row=0, column=0, sticky=tk.W)
-        # self.study_id_field.grid(row=0, column=1)
-        # self.series_number_label.grid(row=1, column=0, sticky=tk.W)
-        # self.series_number_field.grid(row=1, column=1)
-        # self.accession_number_label.grid(row=2, column=0, sticky=tk.W)
-        # self.accession_number_field.grid(row=2, column=1)
-        self.study_date_label.grid(row=3, column=0, sticky=tk.W)
-        self.study_date_field.grid(row=3, column=1)
-        self.study_time_label.grid(row=4, column=0, sticky=tk.W)
-        self.study_time_field.grid(row=4, column=1)
-        # self.referring_phycisian_label.grid(row=5, column=0, sticky=tk.W)
-        # self.referring_phycisian_field.grid(row=5, column=1)
-        self.patient_id_label.grid(row=6, column=0, sticky=tk.W)
-        self.patient_id_field.grid(row=6, column=1)
-        self.patient_name_label.grid(row=7, column=0, sticky=tk.W)
-        self.patient_name_field.grid(row=7, column=1)
-        self.patient_surname_label.grid(row=8, column=0, sticky=tk.W)
-        self.patient_surname_field.grid(row=8, column=1)
-        self.patient_sex_label.grid(row=9, column=0, sticky=tk.W)
-        self.patient_sex_field.grid(row=9, column=1)
-        self.patient_birthday_label.grid(row=10, column=0, sticky=tk.W)
-        self.patient_birthday_field.grid(row=10, column=1)
-        # self.patient_orientation_label.grid(row=10, column=0, sticky=tk.W)
-        # self.patient_orientation_field.grid(row=10, column=1)
-        self.comment_label.grid(row=11, column=0, sticky=tk.W)
-        self.comment_field.grid(row=11, column=1)
-        self.error_msgbox.grid(row=12, column=0, sticky=tk.W)
-        self.dicom_confirm_btn.grid(row=13, column=0)
+        self.study_date_label.grid(row=0, column=0, sticky=tk.W)
+        self.study_date_field.grid(row=0, column=1)
+        self.study_time_label.grid(row=1, column=0, sticky=tk.W)
+        self.study_time_field.grid(row=1, column=1)
+        self.patient_id_label.grid(row=2, column=0, sticky=tk.W)
+        self.patient_id_field.grid(row=2, column=1)
+        self.patient_name_label.grid(row=3, column=0, sticky=tk.W)
+        self.patient_name_field.grid(row=3, column=1)
+        self.patient_surname_label.grid(row=4, column=0, sticky=tk.W)
+        self.patient_surname_field.grid(row=4, column=1)
+        self.patient_sex_label.grid(row=5, column=0, sticky=tk.W)
+        self.patient_sex_field.grid(row=5, column=1)
+        self.patient_birthday_label.grid(row=6, column=0, sticky=tk.W)
+        self.patient_birthday_field.grid(row=6, column=1)
+        self.comment_label.grid(row=7, column=0, sticky=tk.W)
+        self.comment_field.grid(row=7, column=1)
+        self.error_msgbox.grid(row=8, column=0, sticky=tk.W)
+        self.dicom_confirm_btn.grid(row=9, column=0)
 
     def dicom_load_current_values(self, data):
         """Get values from the data set stored in self.dataset"""
@@ -139,7 +115,7 @@ class CTScannerGUI:
         self.comment_field.delete(0, tk.END)
 
         self.study_date_field.insert(0, data.get('StudyDate'))
-        self.study_time_field.insert(0, data.get('StudyTime'))  # TODO: Add placeholders
+        self.study_time_field.insert(0, data.get('StudyTime'))
         self.patient_id_field.insert(0, data.get('PatientID'))
         self.patient_name_field.insert(0, data.get('PatientGivenName'))
         self.patient_surname_field.insert(0, data.get('PatientFamilyName'))
@@ -182,8 +158,6 @@ class CTScannerGUI:
         self.options_confirm = tk.Button(master=self.settings_frame, text='Zatwierdź',
                                          command=sim_options_confirm_clbk, state='disabled')
 
-        # self.options_image = tk.Canvas(master=self.settings_frame, width=IMAGE_WIDTH, height=IMAGE_HEIGHT)
-        # self.settings_frame.grid(row=1, column=0, sticky=tk.N + tk.W, pady=0, ipadx=0)
         self.settings_frame.pack()
         self.delta_alpha_step_label.pack()
         self.delta_alpha_step.pack()
@@ -192,7 +166,6 @@ class CTScannerGUI:
         self.detectors_spread_label.pack()
         self.detectors_spread.pack()
         self.options_confirm.pack()
-        # self.options_image.pack()
 
     def _radon_show_steps_clbk(self):
         """Called when 'show radon steps' option is changed.
@@ -245,8 +218,6 @@ class CTScannerGUI:
         self.show_steps_iradon = tk.Checkbutton(master=self.iradon_frame, text='Pokazuj kroki pośrednie',
                                                 variable=self.show_steps_iradon_var,
                                                 command=self._iradon_show_steps_clbk)
-        # self.enable_filtering = tk.Checkbutton(master=self.iradon_frame, text='Włącz filtr',
-        #                                        variable=self.enable_filtering_var)
         self.next_reco_step = tk.Button(master=self.iradon_frame, text='Wykonaj', command=iradon_next_step_clbk,
                                         state='disabled')
         self.iradon_progress_frame = tk.Frame(master=self.iradon_frame)
@@ -260,7 +231,6 @@ class CTScannerGUI:
         self.error_label = tk.Label(master=self.iradon_frame)
         self.iradon_frame.grid(row=0, column=3)
         self.show_steps_iradon.pack()
-        # self.enable_filtering.pack()
         self.next_reco_step.pack()
         self.iradon_progress_frame.pack()
         self.iradon_total_progress_label.grid(row=0, column=0, sticky=tk.W)
@@ -279,7 +249,6 @@ class CTScannerGUI:
         if image_type == 'input':
             canvas = self.input_image
         elif image_type == 'options':
-            # canvas = self.options_image
             canvas = self.simulation_step_image
         elif image_type == 'simulation_step':
             canvas = self.simulation_step_image
@@ -364,10 +333,3 @@ class CTScannerGUI:
     def toggle_save_dicom_in_menu(self, state):
         self.toggle_menu_entry(AS_DICOM_IN_TEXT, state)
 
-
-def test():
-    pass
-
-
-if __name__ == '__main__':
-    test()

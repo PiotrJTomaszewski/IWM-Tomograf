@@ -28,6 +28,10 @@ class CTScanner:
     iradon_scaling_factor = 0
     rec_img_dirty = True  # True if the reconstructed img needs to be recalculated (used when saving the image)
     rec_img = None
+    is_scanner_dirty = True
+    current_emitters = []
+    current_detectors = []
+    current_scan_lines = []
 
     def __init__(self, radon_step_progress_clbk, radon_total_progress_clbk, iradon_step_progress_clbk,
                  iradon_total_progress_clbk, normalization_radon_progress_clbk, normalization_iradon_progress_clbk):
@@ -54,6 +58,7 @@ class CTScanner:
         self.delta_alpha = delta_alpha
         self.em_det_no = n
         self.em_det_spread = l
+        self.is_scanner_dirty = True
 
     def init_radon(self):
         self.scan_lines = []
@@ -61,6 +66,7 @@ class CTScanner:
         self.radon_total_iter_no = math.floor(self.max_alpha / self.delta_alpha)
         self.current_radon_iteration = 0
         self.radon_result = np.zeros((self.em_det_no, self.radon_total_iter_no), dtype=np.int)
+        self.is_scanner_dirty = True
 
     def radon_transform_step(self):
         """
@@ -68,11 +74,12 @@ class CTScanner:
         :return: False if the transform is done, true if there are still steps available
         """
         if self.current_radon_iteration < self.radon_total_iter_no:
-            emitters, detectors = self._calculate_emitters_detectors_position()
-            cur_scan_lines = self._calculate_scan_lines(emitters, detectors)
-            self.scan_lines.append(cur_scan_lines)
-            for line_id, line in enumerate(cur_scan_lines):
-                line_integral = np.sum([self.input_image[point] for point in cur_scan_lines[line_id]])
+            self.current_emitters, self.current_detectors = self._calculate_emitters_detectors_position()
+            self.current_scan_lines = self._calculate_scan_lines(self.current_emitters, self.current_detectors)
+            self.scan_lines.append(self.current_scan_lines)
+            self.is_scanner_dirty = False
+            for line_id, line in enumerate(self.current_scan_lines):
+                line_integral = np.sum([self.input_image[point] for point in self.current_scan_lines[line_id]])
                 self.radon_result[line_id, self.current_radon_iteration] += line_integral
                 if line_id % 5 == 0:
                     self.radon_step_progress_clbk(line_id, self.em_det_no)
@@ -94,12 +101,10 @@ class CTScanner:
         emitters = []
         detectors = []
         r = self.circumcircle_diameter // 2
-        # TODO: Look at this division
         angles = np.linspace(start=self.current_alpha - self.em_det_spread / 2,
                              stop=self.current_alpha + self.em_det_spread / 2, num=self.em_det_no)
         angles_rad = [math.radians(x) for x in angles]
         for i in range(self.em_det_no):
-            # TODO: Should emitters be on top or bottom?
             angle_rad = angles_rad[i]
             emitter_a = int(self.input_image_center + r * math.cos(angle_rad))
             emitter_b = int(self.input_image_center - r * math.sin(angle_rad))
@@ -123,7 +128,6 @@ class CTScanner:
 
     def iradon_step(self):
         self.rec_img_dirty = True
-        # TODO: I don't like this formula. It is technically correct but doesn't interpolate the lines in any way.
         for s, line in enumerate(self.scan_lines[self.current_iradon_iteration]):
             for point in line:
                 self.iradon_result[point] += self.radon_result[s, self.current_iradon_iteration]
@@ -146,13 +150,15 @@ class CTScanner:
     def visualize_scanner(self):
         scanner_vis_img = self.input_image.copy()
         self._visualize_circumcircle(scanner_vis_img)
-        emitters, detectors = self._calculate_emitters_detectors_position()
-        for emitter in emitters:
+        if self.is_scanner_dirty:
+            self.current_emitters, self.current_detectors = self._calculate_emitters_detectors_position()
+            self.current_scan_lines = self._calculate_scan_lines(self.current_emitters, self.current_detectors)
+            self.is_scanner_dirty = False
+        for emitter in self.current_emitters:
             _visualize_emitter(scanner_vis_img, emitter)
-        for detector in detectors:
+        for detector in self.current_detectors:
             _visualize_detector(scanner_vis_img, detector)
-        scan_lines = self._calculate_scan_lines(emitters, detectors)
-        _visualize_scan_lines(scanner_vis_img, scan_lines)
+        _visualize_scan_lines(scanner_vis_img, self.current_scan_lines)
         return scanner_vis_img
 
     def _visualize_circumcircle(self, image):

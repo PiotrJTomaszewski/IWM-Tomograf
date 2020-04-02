@@ -28,7 +28,7 @@ def generate_line(x1, y1, x2, y2):
 
 def _bresenham(x1, y1, x2, y2):
     """
-    This function uses Bresenham algorithm to
+    This function uses Bresenham algorithm to calculate lines from point (x1, y1) to (x2, y2)
     The algorithm assumes that the change in x is greater that the change in y.
     The line can only go down and to the right.
     From: http://www.cs.put.poznan.pl/swilk/pmwiki/uploads/Dydaktyka/bresenham-int.pdf
@@ -45,21 +45,3 @@ def _bresenham(x1, y1, x2, y2):
             error -= delta_x
         error += delta_y
     return points
-
-
-def __test():
-    # For test purposes only
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    img = np.zeros((200, 200, 3))
-    points = generate_line(10, 50, 150, 150)
-    for i in range(len(points)):
-        img[points[i][0], points[i][1]] = 1
-    plt.imshow(img)
-    plt.show()
-
-
-if __name__ == '__main__':
-    # For test purposes only
-    __test()

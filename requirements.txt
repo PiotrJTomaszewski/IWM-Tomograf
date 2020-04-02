@@ -1,8 +1,6 @@
 # Here are all required python modules
 # To install them all type: pip install -r requirements.txt
 scikit-image
-matplotlib
 numpy
 pillow
-cython
 pydicom

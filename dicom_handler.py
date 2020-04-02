@@ -79,28 +79,12 @@ def dicom_save(file_name, dataset, image):
     dataset.SamplesPerPixel = 1
     dataset.PhotometricInterpretation = "MONOCHROME2"
     dataset.PixelRepresentation = 0
-    # dt = datetime.datetime.now()
-    # dataset.ContentDate = dt.strftime('%Y%m%d')
-    # time_str = dt.strftime('%H%M%S.%f')
-    # dataset.ContentTime = time_str
     dataset.save_as(file_name, write_like_original=False)
 
 
 def dicom_read_dataset(dataset):
     """Get all interesting fields from the dataset and convert some fields to a more user friendly format"""
     data = {}
-    # try:
-    #     self.study_id_field.insert(0, str(self.dataset.StudyID))
-    # except AttributeError:
-    #     pass
-    # try:
-    #     self.series_number_field.insert(0, str(self.dataset.SeriesNumber))
-    # except AttributeError:
-    #     pass
-    # try:
-    #     self.accession_number_field.insert(0, str(self.dataset.AccessionNumber))
-    # except AttributeError:
-    #     pass
     if dataset.get('StudyDate'):
         data['StudyDate'] = dicom_date_dataset_to_display(dataset.get('StudyDate'))
     else:
@@ -109,10 +93,6 @@ def dicom_read_dataset(dataset):
         data['StudyTime'] = dicom_time_dataset_to_display(dataset.get('StudyTime'))
     else:
         data['StudyTime'] = ''
-    # try:
-    #     self.referring_phycisian_field.insert(0, str(self.dataset.ReferringPhysicianName))
-    # except AttributeError:
-    #     pass
     data['PatientID'] = str(dataset.get('PatientID') or '')
     if dataset.get('PatientName'):
         patient_name = dataset.get('PatientName')
@@ -140,10 +120,6 @@ def dicom_read_dataset(dataset):
         data['PatientBirthDate'] = dicom_date_dataset_to_display(bday)
     else:
         data['PatientBirthDate'] = ''
-    # try:
-    #     self.patient_orientation_field.insert(0, str(self.dataset.PatientOrientation))
-    # except AttributeError:
-    #     pass
     data['ImageComments'] = dataset.get('ImageComments') or ''
     return data
 
@@ -151,14 +127,10 @@ def dicom_read_dataset(dataset):
 def dicom_store_data(data, dataset):
     """Stores data from the data dictionary to a provided DICOM dataset.
     This function assumes that the provided data is correct and thus won't check it"""
-    # self.dataset.StudyID = self.study_id_field.get()
-    # self.dataset.SeriesNumber = self.series_number_field.get()
-    # self.dataset.AccessionNumber = self.accession_number_field.get()
     if data.get('StudyDate'):
         dataset.StudyDate = dicom_date_display_to_dataset(data.get('StudyDate'))
     if data.get('StudyTime'):
         dataset.StudyTime = dicom_time_display_to_dataset(data.get('StudyTime'))
-    # self.dataset.ReferringPhysicianName = self.referring_phycisian_field.get()
     if data.get('PatientGivenName') or data.get('PatientFamilyName'):
         patient_given_name = data.get('PatientGivenName') or ''
         patient_family_name = data.get('PatientFamilyName') or ''
@@ -172,7 +144,6 @@ def dicom_store_data(data, dataset):
             dataset.PatientSex = 'F'
     if data.get('PatientBirthDate'):
         dataset.PatientBirthDate = dicom_date_display_to_dataset(data.get('PatientBirthDate'))
-    # self.dataset.PatientOrientation = self.patient_orientation_field.get()
     if data.get('ImageComments'):
         dataset.ImageComments = data.get('ImageComments')
     return dataset
@@ -180,12 +151,6 @@ def dicom_store_data(data, dataset):
 
 def dicom_check_data(data):
     """Checks if data is correct"""
-    # if not self._is_not_empty(self.study_id_field.get()):
-    #     return False
-    # if not self._is_not_empty(self.series_number_field.get()):
-    #     return False
-    # if not self._is_not_empty(self.accession_number_field.get()):
-    #     return False
     if data.get('StudyDate'):
         result, error_msg = _is_date_correct(data.get('StudyDate'))
         if not result:
@@ -194,14 +159,10 @@ def dicom_check_data(data):
         result, error_msg = _is_time_correct(data.get('StudyTime'))
         if not result:
             return False, error_msg
-    # if not self._is_not_empty(self.referring_phycisian_field.get()):
-    #     return False
     if data.get('PatientBirthDate'):
         result, error_msg = _is_date_correct(data.get('PatientBirthDate'))
         if not result:
             return False, error_msg
-    # if not self._is_not_empty(self.patient_orientation_field.get()):
-    #     return False
     return True, ''
 
 
